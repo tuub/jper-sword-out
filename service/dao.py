@@ -1,6 +1,12 @@
 from octopus.modules.es import dao
 from octopus.core import app
 
+class RepositoryStatusDAO(dao.ESDAO):
+    __type__ = "sword_repository_status"
+
+class DepositRecordDAO(dao.ESDAO):
+    __type__ = "sword_deposit_record"
+
 class AccountDAO(dao.ESDAO):
     __type__ = "account"
 

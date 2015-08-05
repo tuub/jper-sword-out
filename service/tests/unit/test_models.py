@@ -30,3 +30,23 @@ class TestModels(ESTestCase):
         assert len(accs) == 2
         for acc in accs:
             assert acc.sword_collection in ["http://sword/1", "http://sword/2"]
+
+    def test_02_repository_status(self):
+        # make a blank one
+        rs = models.RepositoryStatus()
+
+        # test all its methods
+        dataobj.test_dataobj(rs, fixtures.SwordFactory.repository_status_do_test())
+
+        # make a new one around some existing data
+        rs = models.RepositoryStatus(fixtures.SwordFactory.repository_status())
+
+    def test_03_deposit_record(self):
+        # make a blank one
+        dr = models.DepositRecord()
+
+        # test all its methods
+        dataobj.test_dataobj(dr, fixtures.SwordFactory.deposit_record_do_test())
+
+        # make a new one around some existing data
+        dr = models.DepositRecord(fixtures.SwordFactory.deposit_record())
