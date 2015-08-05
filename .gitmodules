@@ -4,3 +4,6 @@
 [submodule "magnificent-octopus"]
 	path = magnificent-octopus
 	url = https://github.com/richard-jones/magnificent-octopus
+[submodule "python-client-sword2"]
+	path = python-client-sword2
+	url = https://github.com/swordapp/python-client-sword2.git
