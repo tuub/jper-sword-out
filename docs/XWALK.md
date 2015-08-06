@@ -19,7 +19,7 @@
 | metadata.date_submitted | dcterms:dateSubmitted | |
 | metadata.license_ref.url | ali:license_ref AND dc:rights | Note that the @start_date should be embargo.end, but may also be any other suitable date from the metadata |
 | metadata.license_ref.title | dc:rights | if no metadata.license_ref.url is present |
-| metadata.project.* | rioxxterms:project | See RIOXX documentation for details in implementation |
+| metadata.project.* | rioxxterms:project | @funder_name=metadata.project.name, @funder_id=metadata.project.identifier, text=metadata.project.grant_number.  See RIOXX documentation for details in implementation |
 | metadata.subject | dc:subject | |
 
 
