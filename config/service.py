@@ -37,8 +37,8 @@ SECRET_KEY = "super-secret-key"
 #############################################
 # important overrides for storage module
 
-#STORE_IMPL = "octopus.modules.store.store.StoreLocal"
-#STORE_TMP_IMPL = "octopus.modules.store.store.TempStore"
+STORE_IMPL = "octopus.modules.store.store.StoreLocal"
+STORE_TMP_IMPL = "octopus.modules.store.store.TempStore"
 
 from octopus.lib import paths
 STORE_LOCAL_DIR = paths.rel2abs(__file__, "..", "service", "tests", "local_store", "live")

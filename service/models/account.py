@@ -98,6 +98,14 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
     def sword_collection(self):
         return self._get_single("sword_repository.collection", coerce=self._utf8_unicode())
 
+    @property
+    def sword_username(self):
+        return self._get_single("sword_repository.username", coerce=self._utf8_unicode())
+
+    @property
+    def sword_password(self):
+        return self._get_single("sword_repository.password", coerce=self._utf8_unicode())
+
     def can_log_in(self):
         return True
 
