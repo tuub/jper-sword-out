@@ -1,5 +1,8 @@
 from copy import deepcopy
-from octopus.lib import dates
+from octopus.lib import dates, paths
+import os
+
+RESOURCES = paths.rel2abs(__file__, "..", "resources")
 
 class NotificationFactory(object):
 
@@ -26,6 +29,10 @@ class NotificationFactory(object):
     @classmethod
     def outgoing_notification(cls):
         return deepcopy(OUTGOING)
+
+    @classmethod
+    def example_package_path(cls):
+        return os.path.join(RESOURCES, "example.zip")
 
 LIST_ERROR = {
     "error" : "request failed"

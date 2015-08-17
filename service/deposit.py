@@ -45,4 +45,28 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
         content = dr.to_xml()
         sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
 
+    return receipt
+
+def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
+    # create a connection object
+    conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
+
+    # send the request on to the repository
+    ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+
+    # storage manager instance
+    sm = store.StoreFactory.get()
+
+    # find out if this was an error document, and throw an error if so
+    # (recording deposited/failed on the deposit_record along the way)
+    if isinstance(ur, sword2.Error_Document):
+        deposit_record.content_status = "failed"
+        msg = "Content deposit failed with status {x}".format(x=ur.code)
+        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        raise DepositException(msg)
+    else:
+        msg = "Content deposit was successful"
+        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        deposit_record.content_status = "deposited"
+
     return
