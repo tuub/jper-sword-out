@@ -46,3 +46,35 @@ request for it
     * Store receipt             XML Body
 
 
+## 6.5.1. Replacing the File Content of a Resource
+
+    Client                   Interaction                 Server
+    ------                   -----------                 ------
+    
+    Make content    ->      PUT EM-IRI          ->    Ingest package
+    deposit                     + Auth                   Do not begin ingest workflow.
+                                + Package
+                                Packaging: [SimpleZip]
+
+    Record Failure    <-     4xx (Error)            <-   In case of error
+    * Store error               XML Body
+    * Update account
+        record
+                                                         
+    Record Success    <-     204 (No Content)       <-   On successful creation
+
+## 9.3. Completing a Previously Incomplete Deposit
+
+    Client                   Interaction                 Server
+    ------                   -----------                 ------
+    
+    Make complete    ->      POST SE-IRI          ->    Trigger ingest workflow
+    request                     + Auth                   
+                                In Progress: False
+
+    Record Failure    <-     4xx (Error)            <-   In case of error
+    * Store error               XML Body
+    * Update account
+        record
+                                                         
+    Record Success    <-     204 (No Content)       <-   On successful completion
