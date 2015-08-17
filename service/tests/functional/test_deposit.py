@@ -145,3 +145,80 @@ class TestDeposit(TestCase):
         assert len(files) == 3
         assert "metadata_deposit.txt" in files
         assert "content_deposit.txt" in files
+
+    def test_05_complete_deposit_success(self):
+        # first do a successful metadata deposit
+        note = jper.OutgoingNotification(fixtures.NotificationFactory.outgoing_notification())
+
+        acc = models.Account()
+        acc.add_sword_credentials(UN, PW, COL)
+
+        deposit_record = models.DepositRecord()
+        deposit_record.id = deposit_record.makeid()
+        self.stored.append(deposit_record.id)
+
+        receipt = deposit.metadata_deposit(note, acc, deposit_record, complete=False)
+
+        # now do a successful content deposit
+        path = fixtures.NotificationFactory.example_package_path()
+        with open(path) as f:
+            deposit.package_deposit(receipt, f, PACKAGING, acc, deposit_record)
+
+        # finally issue the complete request
+        deposit.complete_deposit(receipt, acc, deposit_record)
+
+        # check the properties of the deposit_record
+        assert deposit_record.metadata_status == "deposited"
+        assert deposit_record.content_status == "deposited"
+        assert deposit_record.completed_status == "deposited"
+
+        # check that a copy has been kept in the local store
+        sm = store.StoreFactory.get()
+        assert sm.exists(deposit_record.id)
+        files = sm.list(deposit_record.id)
+        assert len(files) == 4
+        assert "metadata_deposit.txt" in files
+        assert "content_deposit.txt" in files
+        assert "complete_deposit.txt" in files
+
+    def test_06_complete_deposit_fail(self):
+        # first do a successful metadata deposit
+        note = jper.OutgoingNotification(fixtures.NotificationFactory.outgoing_notification())
+
+        acc = models.Account()
+        acc.add_sword_credentials(UN, PW, COL)
+
+        deposit_record = models.DepositRecord()
+        deposit_record.id = deposit_record.makeid()
+        self.stored.append(deposit_record.id)
+
+        receipt = deposit.metadata_deposit(note, acc, deposit_record, complete=False)
+
+        # now do a successful content deposit
+        path = fixtures.NotificationFactory.example_package_path()
+        with open(path) as f:
+            deposit.package_deposit(receipt, f, PACKAGING, acc, deposit_record)
+
+        # now mess with the receipt to generate a failure
+        em = receipt.se_iri
+        bits = em.split("/")
+        bits[len(bits) - 1] = "randomobjectidentifier"
+        receipt.se_iri = "/".join(bits)
+
+        # finally issue the complete request
+        with self.assertRaises(deposit.DepositException):
+            deposit.complete_deposit(receipt, acc, deposit_record)
+
+        # check the properties of the deposit_record
+        assert deposit_record.metadata_status == "deposited"
+        assert deposit_record.content_status == "deposited"
+        assert deposit_record.completed_status == "failed"
+
+        # check that a copy has been kept in the local store
+        sm = store.StoreFactory.get()
+        assert sm.exists(deposit_record.id)
+        files = sm.list(deposit_record.id)
+        assert len(files) == 4
+        assert "metadata_deposit.txt" in files
+        assert "content_deposit.txt" in files
+        assert "complete_deposit.txt" in files
