@@ -83,6 +83,10 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
         self._set_list("role", role, coerce=self._utf8_unicode())
 
     @property
+    def api_key(self):
+        return self._get_single("api_key", coerce=self._utf8_unicode())
+
+    @property
     def packaging(self):
         return self._get_list("packaging", coerce=self._utf8_unicode())
 

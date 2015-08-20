@@ -1,5 +1,6 @@
-from octopus.lib import dataobj
+from octopus.lib import dataobj, dates
 from service import dao
+from datetime import datetime
 
 class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
     """
@@ -18,8 +19,11 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
                 "id" : {"coerce" : "unicode"},
                 "last_updated" : {"coerce" : "utcdatetime"},
                 "created_date" : {"coerce" : "utcdatetime"},
+
                 "last_deposit_date" : {"coerce" : "utcdatetime"},
                 "status" : {"coerce" : "unicode"},
+                "retries" : {"coerce" : "integer"},
+                "last_tried" : {"coerce" : "utcdatetime"}
             }
         }
 
@@ -40,7 +44,47 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
 
     @status.setter
     def status(self, val):
-        self._set_single("status", val, coerce=dataobj.to_unicode(), allowed_values=[u"succeeding", u"failing"])
+        self._set_single("status", val, coerce=dataobj.to_unicode(), allowed_values=[u"succeeding", u"problem", u"failing"])
+
+    @property
+    def retries(self):
+        return self._get_single("retries", coerce=dataobj.to_int(), default=0)
+
+    @retries.setter
+    def retries(self, val):
+        self._set_single("retries", val, coerce=dataobj.to_int())
+
+    @property
+    def last_tried(self):
+        return self._get_single("last_tried", coerce=dataobj.date_str())
+
+    @last_tried.deleter
+    def last_tried(self):
+        self._delete("last_tried")
+
+    @property
+    def last_tried_timestamp(self):
+        return self._get_single("last_tried", coerce=dataobj.to_datestamp())
+
+    @last_tried.setter
+    def last_tried(self, val):
+        self._set_single("last_tried", val, coerce=dataobj.date_str())
+
+    def record_failure(self, limit):
+        self.last_tried = dates.now()
+        self.retries = self.retries + 1
+        self.status = "problem"
+        if self.retries > limit:
+            del self.last_tried
+            self.retries = 0
+            self.status = "failing"
+
+    def can_retry(self, delay):
+        ts = self.last_tried_timestamp
+        if ts is None:
+            return True
+        limit = dates.before_now(delay)
+        return ts < limit
 
 
 class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
@@ -51,6 +95,7 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         "created_date" : "<date this record was created>",
 
         "repository" : "<account id of the repository>",
+        "notification" : "<notification id that the record is about>",
         "deposit_date" : "<date of attempted deposit>",
         "metadata_status" : "<deposited|failed>",
         "content_status" : "<deposited|none|failed>",
@@ -64,6 +109,7 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
                 "last_updated" : {"coerce" : "utcdatetime"},
                 "created_date" : {"coerce" : "utcdatetime"},
                 "repository" : {"coerce" : "unicode"},
+                "notification" : {"coerce" : "unicode"},
                 "deposit_date" : {"coerce" : "utcdatetime"},
                 "metadata_status" : {"coerce" : "unicode"},
                 "content_status" : {"coerce" : "unicode"},
@@ -83,12 +129,24 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         self._set_single("repository", val, coerce=dataobj.to_unicode())
 
     @property
+    def notification(self):
+        return self._get_single("notification", coerce=dataobj.to_unicode())
+
+    @notification.setter
+    def notification(self, val):
+        self._set_single("notification", val, coerce=dataobj.to_unicode())
+
+    @property
     def deposit_date(self):
         return self._get_single("deposit_date", coerce=dataobj.to_unicode())
 
     @deposit_date.setter
     def deposit_date(self, val):
         self._set_single("deposit_date", val, coerce=dataobj.to_unicode())
+
+    @property
+    def deposit_datestamp(self):
+        return self._get_single("deposit_date", coerce=dataobj.to_datestamp())
 
     @property
     def metadata_status(self):
@@ -113,3 +171,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
     @completed_status.setter
     def completed_status(self, val):
         self._set_single("completed_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"none", u"failed"])
+
+    def was_successful(self):
+        mds = self.metadata_status == "deposited"
+        cds = self.content_status in ["deposited", "none"]
+        comp = self.completed_status in ["deposited", "none"]
+        return mds and cds and comp

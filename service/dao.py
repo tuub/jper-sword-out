@@ -7,6 +7,31 @@ class RepositoryStatusDAO(dao.ESDAO):
 class DepositRecordDAO(dao.ESDAO):
     __type__ = "sword_deposit_record"
 
+    @classmethod
+    def pull_by_ids(cls, notification_id, repository_id):
+        q = DepositRecordQuery(notification_id, repository_id)
+        obs = cls.object_query(q=q.query())
+        if len(obs) > 0:
+            return obs[0]
+
+class DepositRecordQuery(object):
+    def __init__(self, notification_id, repository_id):
+        self.notification_id = notification_id
+        self.repository_id = repository_id
+
+    def query(self):
+        return {
+            "query" : {
+                "bool" : {
+                    "must" : [
+                        {"term" : {"repository.exact" : self.repository_id}},
+                        {"term" : {"notification.exact" : self.notification_id}}
+                    ]
+                }
+            },
+            "sort" : {"last_updated" : {"order" : "desc"}}
+        }
+
 class AccountDAO(dao.ESDAO):
     __type__ = "account"
 

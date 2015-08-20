@@ -43,3 +43,27 @@ STORE_TMP_IMPL = "octopus.modules.store.store.TempStore"
 from octopus.lib import paths
 STORE_LOCAL_DIR = paths.rel2abs(__file__, "..", "service", "tests", "local_store", "live")
 STORE_TMP_DIR = paths.rel2abs(__file__, "..", "service", "tests", "local_store", "tmp")
+
+
+#############################################
+# Re-try/back-off settings
+
+# from the http layer
+
+# specific to this app
+
+# Minimum amount to leave between attempts to deposit, in the event that there was a semi-permanent error
+# default to 1 hour
+LONG_CYCLE_RETRY_DELAY = 3600
+
+# Maximum number of times to try and deposit before giving up and turning off repository sword submission
+# for a given account
+LONG_CYCLE_RETRY_LIMIT = 24
+
+
+###############################################
+## Other app-specific settings
+
+# The date from which the first request against the JPER API will be made when listing a repository's
+# notifications
+DEFAULT_SINCE_DATE = "1970-01-01T00:00:00Z"

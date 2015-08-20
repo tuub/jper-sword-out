@@ -9,7 +9,9 @@
     "created_date" : "<date this record was created>",
     
     "last_deposit_date" : "<date of analysed date of last deposited notification>",
-    "status" : "<succeeding|failing>"
+    "status" : "<succeeding|problem|failing>",
+    "retries" : <number of times we've retried against this repo>
+    "last_tried" : "<date of last failed attempt to deposit>"
 }
 ```
 

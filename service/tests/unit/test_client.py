@@ -1,7 +1,7 @@
 # from octopus.modules.es.testindex import ESTestCase
 from unittest import TestCase
 from octopus.lib import http
-from octopus.modules.jper import client
+from octopus.modules.jper import client, models
 from service.tests import fixtures
 import urlparse, json
 
@@ -49,6 +49,18 @@ def mock_get_content(url, *args, **kwargs):
     elif parsed.path.endswith("error"):
         err = fixtures.NotificationFactory.error_response()
         return MockResponse(400, json.dumps(err))
+
+def mock_iterate(url, *args, **kwargs):
+    parsed = urlparse.urlparse(url)
+    params = urlparse.parse_qs(parsed.query)
+
+    if params["page"][0] == "1":
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=params["page"][0], pageSize=2, count=4, ids=["1111", "2222"])
+        return MockResponse(200, json.dumps(nl))
+    elif params["page"][0] == "2":
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=params["page"][0], pageSize=2, count=4, ids=["3333", "4444"])
+        return MockResponse(200, json.dumps(nl))
+    raise Exception()
 
 API_KEY = "testing"
 JPER_BASE_URL = "http://localhost:5024"
@@ -123,3 +135,33 @@ class TestModels(TestCase):
         # an error
         with self.assertRaises(client.JPERException):
             notes = c.get_content("/error")
+
+    def test_03_iterate_notifications(self):
+        # specify the mock for the http.get function
+        http.get = mock_iterate
+
+        # create a client we can use
+        c = client.JPER(api_key=API_KEY, base_url=JPER_BASE_URL)
+
+        ids = []
+        for note in c.iterate_notifications("1970-01-01T00:00:00Z", repository_id="askdjfhas", page_size=2):
+            assert isinstance(note, models.OutgoingNotification)
+            ids.append(note.id)
+        assert ids == ["1111", "2222", "3333", "4444"]
+
+    def test_04_notification_package_link(self):
+        source = fixtures.NotificationFactory.outgoing_notification()
+        note = models.OutgoingNotification(source)
+
+        # try getting the two link types we know are in the notification
+        faj = note.get_package_link("http://router.jisc.ac.uk/packages/FilesAndJATS")
+        assert faj is not None
+        assert faj.get("url") == "http://router.jisc.ac.uk/api/v1/notification/1234567890/content"
+
+        sz = note.get_package_link("http://purl.org/net/sword/package/SimpleZip")
+        assert sz is not None
+        assert sz.get("url") == "http://router.jisc.ac.uk/api/v1/notification/1234567890/content/SimpleZip"
+
+        # try getting a link which doesn't exist
+        nx = note.get_package_link("http://some.package/or/other")
+        assert nx is None

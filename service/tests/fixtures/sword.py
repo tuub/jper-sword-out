@@ -23,7 +23,9 @@ REPOSITORY_STATUS_DO = {
     "created_date" : "1970-01-01T00:00:00Z",
     "last_updated" : "1971-01-01T00:00:00Z",
     "last_deposit_date" : ("1972-01-01", "1972-01-01T00:00:00Z"),
-    "status" : "succeeding"
+    "status" : "succeeding",
+    "last_tried" : "1971-01-01T00:00:00Z",
+    "retries" : 14
 }
 
 REPOSITORY_STATUS = {
@@ -32,7 +34,9 @@ REPOSITORY_STATUS = {
     "created_date" : "1971-01-01T00:00:00Z",
 
     "last_deposit_date" : "1972-01-01",
-    "status" : "succeeding"
+    "status" : "succeeding",
+    "retries" : 14,
+    "last_tried" : "1971-01-01T00:00:00Z"
 }
 
 DEPOSIT_RECORD_DO = {
@@ -52,6 +56,7 @@ DEPOSIT_RECORD = {
     "created_date" : "1971-01-01T00:00:00Z",
 
     "repository" : "12345",
+    "notification" : "abcde",
     "deposit_date" : "1972-01-01T00:00:00Z",
     "metadata_status" : "deposited",
     "content_status" : "none",
