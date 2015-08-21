@@ -103,6 +103,7 @@ def process_notification(acc, note, since):
     dr.repository = acc.id
     dr.notification = note.id
     dr.deposit_date = dates.now()
+    dr.id = dr.makeid()
 
     # pre-populate the content and completed bits of the deposit record, if there is no package to be deposited
     if link is None:

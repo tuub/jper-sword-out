@@ -5,25 +5,10 @@ from octopus.modules.jper import models as jmod
 from octopus.modules.store import store
 from service.tests import fixtures
 from octopus.lib import dates, http
-import time, sword2, urlparse, json, os
+import time, sword2, urlparse, json, os, zipfile
 from StringIO import StringIO
 from octopus.core import app
 
-class MockResponse(object):
-    def __init__(self, status, body=None):
-        self.status_code = status
-        self._body = body
-        self._stream = StringIO(body)
-
-    def json(self):
-        return json.loads(self._body)
-
-    @property
-    def data(self):
-        return self._body
-
-    def iter_content(self, num_bytes):
-        return self._stream.read(num_bytes)
 
 def mock_process_account_fail(*args, **kwargs):
     raise client.JPERException("oops")
@@ -58,19 +43,9 @@ def mock_complete_deposit_success(*args, **kwargs):
 
 
 def mock_get_content(url, *args, **kwargs):
-    parsed = urlparse.urlparse(url)
-
-    if parsed.path.endswith("/content"):
-        return MockResponse(200, "default content")
-    elif parsed.path.endswith("/content/SimpleZip"):
-        return MockResponse(200, "simplezip")
-    elif parsed.path.endswith("nohttp"):
-        return None
-    elif parsed.path.endswith("auth"):
-        return MockResponse(401)
-    elif parsed.path.endswith("error"):
-        err = fixtures.NotificationFactory.error_response()
-        return MockResponse(400, json.dumps(err))
+    with open(fixtures.NotificationFactory.example_package_path()) as f:
+        cont = f.read()
+    return http.MockResponse(200, cont)
 
 def mock_iterate_fail(*args, **kwargs):
     raise client.JPERException()
@@ -101,8 +76,6 @@ class TestDeposit(ESTestCase):
         self.retry_limit = app.config.get("LONG_CYCLE_RETRY_LIMIT")
 
     def tearDown(self):
-        super(TestDeposit, self).tearDown()
-
         deposit.process_notification = self.old_process_notification
         deposit.process_account = self.old_process_account
 
@@ -119,6 +92,8 @@ class TestDeposit(ESTestCase):
         tmp = store.StoreFactory.tmp()
         for sid in self.stored_ids:
             tmp.delete(sid)
+
+        super(TestDeposit, self).tearDown()
 
     def test_01_run_fail(self):
         # create a process_account method that will fail
@@ -297,8 +272,8 @@ class TestDeposit(ESTestCase):
 
         # check the content in the store
         stream = tmp.get(local_id, "SimpleZip")
-        cont = stream.read()
-        assert cont == "simplezip"
+        z = zipfile.ZipFile(stream)
+        assert z is not None
 
     def test_06_metadata_success_package_fail(self):
         # set up the mocks, so that nothing can happen, even if the test goes wrong

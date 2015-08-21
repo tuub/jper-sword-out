@@ -6,55 +6,39 @@ from service.tests import fixtures
 import urlparse, json
 from StringIO import StringIO
 
-class MockResponse(object):
-    def __init__(self, status, body=None):
-        self.status_code = status
-        self._body = body
-        self._stream = StringIO(body)
-
-    def json(self):
-        return json.loads(self._body)
-
-    @property
-    def data(self):
-        return self._body
-
-    def iter_content(self, num_bytes):
-        return self._stream.read(num_bytes)
-
 def mock_list(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
     params = urlparse.parse_qs(parsed.query)
 
     if params["since"][0] == "1970-01-01T00:00:00Z":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], pageSize=2, count=2)
-        return MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl))
     elif params["since"][0] == "1971-01-01T00:00:00Z":
         before = (int(params["page"][0]) - 1) * int(params["pageSize"][0])
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=int(params["pageSize"][0]), count=before + 3)
-        return MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl))
     elif params["since"][0] == "1972-01-01T00:00:00Z":
         return None
     elif params["since"][0] == "1973-01-01T00:00:00Z":
-        return MockResponse(401)
+        return http.MockResponse(401)
     elif params["since"][0] == "1974-01-01T00:00:00Z":
         err = fixtures.NotificationFactory.error_response()
-        return MockResponse(400, json.dumps(err))
+        return http.MockResponse(400, json.dumps(err))
 
 def mock_get_content(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
 
     if parsed.path.endswith("/content"):
-        return MockResponse(200, "default content")
+        return http.MockResponse(200, "default content")
     elif parsed.path.endswith("/content/SimpleZip"):
-        return MockResponse(200, "simplezip")
+        return http.MockResponse(200, "simplezip")
     elif parsed.path.endswith("nohttp"):
         return None
     elif parsed.path.endswith("auth"):
-        return MockResponse(401)
+        return http.MockResponse(401)
     elif parsed.path.endswith("error"):
         err = fixtures.NotificationFactory.error_response()
-        return MockResponse(400, json.dumps(err))
+        return http.MockResponse(400, json.dumps(err))
 
 def mock_iterate(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
@@ -62,10 +46,10 @@ def mock_iterate(url, *args, **kwargs):
 
     if params["page"][0] == "1":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["1111", "2222"])
-        return MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl))
     elif params["page"][0] == "2":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["3333", "4444"])
-        return MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl))
     raise Exception()
 
 API_KEY = "testing"

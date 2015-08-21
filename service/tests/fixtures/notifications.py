@@ -7,7 +7,7 @@ RESOURCES = paths.rel2abs(__file__, "..", "resources")
 class NotificationFactory(object):
 
     @classmethod
-    def notification_list(cls, since, page=1, pageSize=10, count=1, ids=None):
+    def notification_list(cls, since, page=1, pageSize=10, count=1, ids=None, analysis_dates=None):
         nl = deepcopy(NOTIFICATION_LIST)
         nl["since"] = since
         nl["page"] = page
@@ -20,6 +20,8 @@ class NotificationFactory(object):
             note = deepcopy(OUTGOING)
             if ids is not None:
                 note["id"] = ids[i]
+            if analysis_dates is not None:
+                note["analysis_date"] = analysis_dates[i]
             nl["notifications"].append(note)
         return nl
 
