@@ -4,11 +4,13 @@ from octopus.lib import http
 from octopus.modules.jper import client, models
 from service.tests import fixtures
 import urlparse, json
+from StringIO import StringIO
 
 class MockResponse(object):
     def __init__(self, status, body=None):
         self.status_code = status
         self._body = body
+        self._stream = StringIO(body)
 
     def json(self):
         return json.loads(self._body)
@@ -17,15 +19,19 @@ class MockResponse(object):
     def data(self):
         return self._body
 
+    def iter_content(self, num_bytes):
+        return self._stream.read(num_bytes)
+
 def mock_list(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
     params = urlparse.parse_qs(parsed.query)
 
     if params["since"][0] == "1970-01-01T00:00:00Z":
-        nl = fixtures.NotificationFactory.notification_list(params["since"][0], count=2)
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], pageSize=2, count=2)
         return MockResponse(200, json.dumps(nl))
     elif params["since"][0] == "1971-01-01T00:00:00Z":
-        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=params["page"][0], pageSize=params["pageSize"][0], count=3)
+        before = (int(params["page"][0]) - 1) * int(params["pageSize"][0])
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=int(params["pageSize"][0]), count=before + 3)
         return MockResponse(200, json.dumps(nl))
     elif params["since"][0] == "1972-01-01T00:00:00Z":
         return None
@@ -55,10 +61,10 @@ def mock_iterate(url, *args, **kwargs):
     params = urlparse.parse_qs(parsed.query)
 
     if params["page"][0] == "1":
-        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=params["page"][0], pageSize=2, count=4, ids=["1111", "2222"])
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["1111", "2222"])
         return MockResponse(200, json.dumps(nl))
     elif params["page"][0] == "2":
-        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=params["page"][0], pageSize=2, count=4, ids=["3333", "4444"])
+        nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["3333", "4444"])
         return MockResponse(200, json.dumps(nl))
     raise Exception()
 
@@ -68,11 +74,15 @@ JPER_BASE_URL = "http://localhost:5024"
 class TestModels(TestCase):
     def setUp(self):
         super(TestModels, self).setUp()
+
         self.old_http_get = http.get
+        self.old_http_get_stream = http.get_stream
 
     def tearDown(self):
         super(TestModels, self).tearDown()
+
         http.get = self.old_http_get
+        http.get_stream = self.old_http_get_stream
 
     def test_01_list_notifications(self):
         # specify the mock for the http.get function
@@ -107,7 +117,7 @@ class TestModels(TestCase):
 
     def test_02_get_content(self):
         # specify the mock for the http.get function
-        http.get = mock_get_content
+        http.get_stream = mock_get_content
 
         # create a client we can use
         c = client.JPER(api_key=API_KEY, base_url=JPER_BASE_URL)

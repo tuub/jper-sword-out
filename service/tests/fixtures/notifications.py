@@ -14,7 +14,9 @@ class NotificationFactory(object):
         nl["pageSize"] = pageSize
         nl["total"]= count
         nl["timestamp"] = dates.now()
-        for i in range(pageSize):
+
+        this_page = pageSize if page * pageSize <= count else count - ((page - 1) * pageSize)
+        for i in range(this_page):
             note = deepcopy(OUTGOING)
             if ids is not None:
                 note["id"] = ids[i]

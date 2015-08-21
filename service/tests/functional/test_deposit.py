@@ -10,7 +10,7 @@ from lxml import etree
 # Recommend just starting an instance of SSS, then picking a collection
 # and sticking it here:
 
-COL = "http://localhost:8080/col-uri/4d410b73-39ff-4088-8409-ebe89dc7ff2f"
+COL = "http://localhost:8080/col-uri/e851b2af-629d-4ab3-bd1f-243d46efcb55"
 ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
 UN = "sword"
 PW = "sword"
@@ -222,3 +222,4 @@ class TestDeposit(TestCase):
         assert "metadata_deposit.txt" in files
         assert "content_deposit.txt" in files
         assert "complete_deposit.txt" in files
+
