@@ -20,9 +20,10 @@ def to_dc_rioxx(note, entry):
     if embargo_end is not None:
         entry.add_field("dcterms_available", embargo_end)
 
-    # metadata.title -> dc:title
+    # metadata.title -> dc:title AND atom:title
     if note.title is not None:
         entry.add_field("dc_title", note.title)
+        entry.add_field("atom_title", note.title)
 
     # metadata.version -> rioxxterms:version
     if note.version is not None:
@@ -32,9 +33,10 @@ def to_dc_rioxx(note, entry):
     if note.publisher is not None:
         entry.add_field("dc_publisher", note.publisher)
 
-    # metadata.source.name -> dc:source
+    # metadata.source.name -> dc:source AND atom:source
     if note.source_name is not None:
         entry.add_field("dc_source", note.source_name)
+        entry.add_field("atom_source", note.source_name)
 
     # metadata.source.identifier -> dc:source
     for ident in note.source_identifiers:
@@ -51,7 +53,7 @@ def to_dc_rioxx(note, entry):
     if note.type is not None:
         entry.add_field("dc_type", note.type)
 
-    # metadata.author -> dc:creator AND rioxxterms:author
+    # metadata.author -> dc:creator AND rioxxterms:author AND atom:author
     affs = []
     for a in note.authors:
         name = a.get("name")
@@ -59,6 +61,7 @@ def to_dc_rioxx(note, entry):
 
         if name is not None:
             entry.add_field("dc_creator", name)
+            entry.add_author(name)
 
         for ident in a.get("identifier", []):
             id = ident.get("type") + ":" + ident.get("id")
@@ -74,18 +77,20 @@ def to_dc_rioxx(note, entry):
         if aff is not None:
             affs.append(aff)
 
-    # metadata.author.affiliation -> dc:contributor
+    # metadata.author.affiliation -> dc:contributor AND atom:contributor
     for aff in list(set(affs)):
         entry.add_field("dc_contributor", aff)
+        entry.add_contributor(aff)
 
     # metadata.language -> dc:language
     if note.language is not None:
         entry.add_field("dc_language", note.language)
 
-    # metadata.publication_date -> rioxxterms:publication_date AND dc:date
+    # metadata.publication_date -> rioxxterms:publication_date AND dc:date AND atom:published
     if note.publication_date is not None:
         entry.add_field("rioxxterms_publication_date", note.publication_date)
         entry.add_field("dc_date", note.publication_date)
+        entry.add_field("atom_published", note.publication_date)
 
     # metadata.date_accepted -> dcterms:dateAccepted
     if note.date_accepted is not None:
@@ -95,11 +100,12 @@ def to_dc_rioxx(note, entry):
     if note.date_submitted is not None:
         entry.add_field("dcterms_dateSubmitted", note.date_submitted)
 
-    # metadata.license_ref.url -> ali:license_ref AND dc:rights
+    # metadata.license_ref.url -> ali:license_ref AND dc:rights AND atom:rights
     lic = note.license
     lurl = lic.get("url")
     if lurl is not None:
         entry.add_field("dc_rights", lurl)
+        entry.add_field("atom_rights", lurl)
         attrs = {}
         if embargo_end is not None:
             attrs["start_date"] = embargo_end
@@ -107,7 +113,7 @@ def to_dc_rioxx(note, entry):
     elif lic.get("title") is not None:
         entry.add_field("dc_rights", lic.get("title"))
 
-    # metadata.project -> rioxxterms:project
+    # metadata.project -> rioxxterms:project AND atom:contributor
     for proj in note.projects:
         gn = proj.get("grant_number") if "grant_number" in proj else proj.get("name")
         attrs = {}
@@ -125,8 +131,12 @@ def to_dc_rioxx(note, entry):
             gn = ""
         entry.add_field("rioxxterms_project", gn, attrs=attrs)
 
+        entry.add_contributor(proj.get("name") if "name" in proj else proj.get("grant_number", ""))
+
     # metadata.subject -> dc:subject
     for s in note.subjects:
         entry.add_field("dc_subject", s)
+
+    # Now populate some standard atom fields for a useful default for repositories which only understand that
 
 

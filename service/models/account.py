@@ -22,7 +22,8 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
 
         "repository" : {
             "name" : "<name of the repository>",
-            "url" : "<url for the repository>"
+            "url" : "<url for the repository>",
+            "software" : "<repository software name>"
         },
 
         "sword_repository" : {
@@ -109,6 +110,14 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
     @property
     def sword_password(self):
         return self._get_single("sword_repository.password", coerce=self._utf8_unicode())
+
+    @property
+    def repository_software(self):
+        return self._get_single("repository.software", coerce=self._utf8_unicode())
+
+    @repository_software.setter
+    def repository_software(self, val):
+        self._set_single("repository.software", val, coerce=self._utf8_unicode())
 
     def can_log_in(self):
         return True

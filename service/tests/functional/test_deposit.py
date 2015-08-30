@@ -14,12 +14,14 @@ from octopus.lib import http, dates, paths
 # Recommend just starting an instance of SSS, then picking a collection
 # and sticking it here:
 
-COL = "http://localhost:8080/col-uri/e851b2af-629d-4ab3-bd1f-243d46efcb55"
+COL = "http://eprints.ooz.cottagelabs.com/id/contents"
 ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
-UN = "sword"
-PW = "sword"
+UN = "admin"
+PW = "admin"
+REPO_SOFTWARE = "eprints"
 
 PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
+# PACKAGING = "http://purl.org/net/sword/package/Binary"
 
 def mock_get_content(url, *args, **kwargs):
     with open(fixtures.NotificationFactory.example_package_path()) as f:
@@ -60,6 +62,7 @@ class TestDeposit(ESTestCase):
 
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -87,6 +90,7 @@ class TestDeposit(ESTestCase):
 
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, ERR_COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -111,6 +115,7 @@ class TestDeposit(ESTestCase):
 
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -140,6 +145,7 @@ class TestDeposit(ESTestCase):
         # first a successful deposit of metadata
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -176,6 +182,7 @@ class TestDeposit(ESTestCase):
 
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -211,6 +218,7 @@ class TestDeposit(ESTestCase):
 
         acc = models.Account()
         acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
 
         deposit_record = models.DepositRecord()
         deposit_record.id = deposit_record.makeid()
@@ -251,11 +259,13 @@ class TestDeposit(ESTestCase):
         # first load some accounts into the system, some with and some without sword support
         acc1 = models.Account()
         acc1.add_sword_credentials(UN, PW, COL)
+        acc1.repository_software = REPO_SOFTWARE
         acc1.add_packaging("http://purl.org/net/sword/package/SimpleZip")
         acc1.save()
 
         acc2 = models.Account()
         acc2.add_sword_credentials(UN, PW, COL)
+        acc2.repository_software = REPO_SOFTWARE
         acc2.add_packaging("http://purl.org/net/sword/package/SimpleZip")
         acc2.save()
 
