@@ -2,6 +2,9 @@
 # pip install -r requirements.txt
 # (i.e. target this file with the -r switch on pip).
 
+# install the python client from submodule directory
+-e python-client-sword2/
+
 # install esprit from submodule directory
 -e esprit/
 

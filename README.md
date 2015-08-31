@@ -10,7 +10,7 @@ Clone the project:
 
 get all the submodules
 
-    cd myapp
+    cd jper-sword-out
     git submodule init
     git submodule update
 
@@ -18,7 +18,7 @@ This will initialise and clone the esprit and magnificent octopus libraries
 
 Then get the submodules for Magnificent Octopus
 
-    cd myapp/magnificent-octopus
+    cd jper-sword-out/magnificent-octopus
     git submodule init
     git submodule update
 
@@ -27,24 +27,31 @@ Create your virtualenv and activate it
     virtualenv /path/to/venv
     source /path/tovenv/bin/activate
 
-Install esprit and magnificent octopus (in that order)
+Either use the requirements.txt file:
 
-    cd myapp/esprit
+    pip install -r requirements.txt
+
+Or follow these instructions:
+
+    cd jper-sword-out/python-client-sword2
+    pip install - e.
+
+    cd jper-sword-out/esprit
     pip install -e .
     
-    cd myapp/magnificent-octopus
+    cd jper-sword-out/magnificent-octopus
     pip install -e .
     
 Create your local config
 
-    cd myapp
+    cd jper-sword-out
     touch local.cfg
 
 Then you can override any config values that you need to
 
 To start the application, you'll also need to install it into the virtualenv just this first time
 
-    cd myapp
+    cd jper-sword-out
     pip install -e .
 
 Then, start your app with
