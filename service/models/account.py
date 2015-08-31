@@ -51,9 +51,9 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
     def hashed_password(self, val):
         self._set_single("password", val, coerce=self._utf8_unicode())
 
-        def set_password(self, password):
-            coerced = self._utf8_unicode()(password)
-            self._set_single("password", generate_password_hash(coerced), coerce=self._utf8_unicode())
+    def set_password(self, password):
+        coerced = self._utf8_unicode()(password)
+        self._set_single("password", generate_password_hash(coerced), coerce=self._utf8_unicode())
 
     def check_password(self, password):
         coerced = self._utf8_unicode()(password)
