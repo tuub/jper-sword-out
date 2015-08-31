@@ -67,3 +67,6 @@ LONG_CYCLE_RETRY_LIMIT = 24
 # The date from which the first request against the JPER API will be made when listing a repository's
 # notifications
 DEFAULT_SINCE_DATE = "1970-01-01T00:00:00Z"
+
+# how many seconds in between each run of the script
+RUN_THROTTLE = 2
