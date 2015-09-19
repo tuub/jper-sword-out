@@ -29,16 +29,16 @@ def mock_get_content(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
 
     if parsed.path.endswith("/content"):
-        return http.MockResponse(200, "default content")
+        return http.MockResponse(200, "default content"), "", 0
     elif parsed.path.endswith("/content/SimpleZip"):
-        return http.MockResponse(200, "simplezip")
+        return http.MockResponse(200, "simplezip"), "", 0
     elif parsed.path.endswith("nohttp"):
-        return None
+        return None, "", 0
     elif parsed.path.endswith("auth"):
-        return http.MockResponse(401)
+        return http.MockResponse(401), "", 0
     elif parsed.path.endswith("error"):
         err = fixtures.NotificationFactory.error_response()
-        return http.MockResponse(400, json.dumps(err))
+        return http.MockResponse(400, json.dumps(err)), "", 0
 
 def mock_iterate(url, *args, **kwargs):
     parsed = urlparse.urlparse(url)
@@ -108,15 +108,15 @@ class TestModels(TestCase):
 
         # try the default content url
         url = "http://localhost:5024/notification/12345/content"
-        resp = c.get_content(url)
-        assert resp.status_code == 200
-        assert resp.data == "default content"
+        stream, headers = c.get_content(url)
+        assert hasattr(stream, "read")
+        assert stream.read() == "default content"
 
         # try a specific content url
         url = "http://localhost:5024/notification/12345/content/SimpleZip"
-        resp = c.get_content(url)
-        assert resp.status_code == 200
-        assert resp.data == "simplezip"
+        stream, headers = c.get_content(url)
+        assert hasattr(stream, "read")
+        assert stream.read() == "simplezip"
 
         # check a failed http request
         with self.assertRaises(client.JPERConnectionException):

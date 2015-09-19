@@ -45,7 +45,7 @@ def mock_complete_deposit_success(*args, **kwargs):
 def mock_get_content(url, *args, **kwargs):
     with open(fixtures.NotificationFactory.example_package_path()) as f:
         cont = f.read()
-    return http.MockResponse(200, cont)
+    return http.MockResponse(200, cont), "", 0
 
 def mock_iterate_fail(*args, **kwargs):
     raise client.JPERException()

@@ -179,7 +179,7 @@ def process_notification(acc, note, since):
 def _cache_content(link, note, acc):
     j = client.JPER(api_key=acc.api_key)
     try:
-        resp = j.get_content(link.get("url"))
+        stream, headers = j.get_content(link.get("url"))
     except client.JPERException as e:
         app.logger.error("Problem while processing notification for SWORD deposit: {x}".format(x=e.message))
         raise e
@@ -191,7 +191,9 @@ def _cache_content(link, note, acc):
     out = tmp.path(local_id, fn, must_exist=False)
 
     with open(out, "wb") as f:
-        for block in resp.iter_content(8192):
+        block = None
+        while block != "":
+            block = stream.read(8192)
             f.write(block)
 
     return local_id, out
@@ -249,10 +251,10 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
         ur = conn.add_file_to_resource(receipt.edit_media, file_handle, "deposit.zip", "application/zip", packaging)
     else:
         # this one would replace all the binary files
-        # ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+        ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
 
         # this one would append the package's files to the resource
-        ur = conn.append(payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+        # ur = conn.append(payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
 
     # storage manager instance
     sm = store.StoreFactory.get()

@@ -14,6 +14,8 @@ from octopus.lib import http, dates, paths
 # Recommend just starting an instance of SSS, then picking a collection
 # and sticking it here:
 
+"""
+EPrints Configuration
 COL = "http://eprints.ooz.cottagelabs.com/id/contents"
 ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
 UN = "admin"
@@ -22,11 +24,24 @@ REPO_SOFTWARE = "eprints"
 
 PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
 # PACKAGING = "http://purl.org/net/sword/package/Binary"
+"""
+
+"""
+SSS Configuration
+"""
+COL = "http://localhost:8080/col-uri/dbc32f11-3ffa-4fdd-88bc-af4544fa97d9"
+ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
+UN = "sword"
+PW = "sword"
+REPO_SOFTWARE = "SSS"
+
+PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
+
 
 def mock_get_content(url, *args, **kwargs):
     with open(fixtures.NotificationFactory.example_package_path()) as f:
         cont = f.read()
-    return http.MockResponse(200, cont)
+    return http.MockResponse(200, cont), "", 0
 
 class TestDeposit(ESTestCase):
     def setUp(self):
