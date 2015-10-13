@@ -15,25 +15,39 @@ from octopus.lib import http, dates, paths
 # and sticking it here:
 
 """
-EPrints Configuration
+Local EPrints Configuration
+
+
 COL = "http://eprints.ooz.cottagelabs.com/id/contents"
-ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
+ERR_COL = "http://eprints.ooz.cottagelabs.com/id/thisdoesntexist"
 UN = "admin"
 PW = "admin"
 REPO_SOFTWARE = "eprints"
 
 PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
-# PACKAGING = "http://purl.org/net/sword/package/Binary"
 """
 
 """
 SSS Configuration
-"""
+
 COL = "http://localhost:8080/col-uri/dbc32f11-3ffa-4fdd-88bc-af4544fa97d9"
 ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
 UN = "sword"
 PW = "sword"
 REPO_SOFTWARE = "SSS"
+
+PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
+"""
+
+"""
+Remote EPrints Configuration
+"""
+
+COL = "http://eprints2.cottagelabs.com/id/contents"
+ERR_COL = "http://eprints2.cottagelabs.com/id/thisdoesntexist"
+UN = "admin"
+PW = "password"
+REPO_SOFTWARE = "eprints"
 
 PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
 
@@ -216,7 +230,10 @@ class TestDeposit(ESTestCase):
         # check the properties of the deposit_record
         assert deposit_record.metadata_status == "deposited"
         assert deposit_record.content_status == "deposited"
-        assert deposit_record.completed_status == "deposited"
+        if acc.repository_software == "eprints":
+            assert deposit_record.completed_status == "none"
+        else:
+            assert deposit_record.completed_status == "deposited"
 
         # check that a copy has been kept in the local store
         sm = store.StoreFactory.get()
@@ -248,18 +265,26 @@ class TestDeposit(ESTestCase):
 
         # now mess with the receipt to generate a failure
         em = receipt.se_iri
+        if em is None:  # EPrints doesn't return an SE-IRI
+            em = receipt.edit
         bits = em.split("/")
         bits[len(bits) - 1] = "randomobjectidentifier"
         receipt.se_iri = "/".join(bits)
 
-        # finally issue the complete request
-        with self.assertRaises(deposit.DepositException):
+        # finally issue the complete request (if this is not an eprints repository)
+        if acc.repository_software != "eprints":
+            with self.assertRaises(deposit.DepositException):
+                deposit.complete_deposit(receipt, acc, deposit_record)
+        else:
             deposit.complete_deposit(receipt, acc, deposit_record)
 
         # check the properties of the deposit_record
         assert deposit_record.metadata_status == "deposited"
         assert deposit_record.content_status == "deposited"
-        assert deposit_record.completed_status == "failed"
+        if acc.repository_software == "eprints":
+            assert deposit_record.completed_status == "none"
+        else:
+            assert deposit_record.completed_status == "failed"
 
         # check that a copy has been kept in the local store
         sm = store.StoreFactory.get()

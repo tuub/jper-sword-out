@@ -209,8 +209,13 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     entry = sword2.Entry()
     xwalk.to_dc_rioxx(note, entry)
 
+    kwargs = {}
+    # determine the content type to send
+    #if acc.repository_software in ["eprints"]:
+    #    kwargs["entry_content_type"] = "application/x-eprints-import-xslt-atom"
+
     # do the deposit
-    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=not complete)
+    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=not complete, **kwargs)
 
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
     if receipt.dom is not None:
@@ -275,18 +280,25 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
 
 
 def complete_deposit(receipt, acc, deposit_record):
-    # create a connection object
-    conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
+    # EPrints repositories can't handle the "complete" request
+    cr = None
+    if acc.repository_software not in ["eprints"]:
+        # create a connection object
+        conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
-    # send the complete request to the repository
-    cr = conn.complete_deposit(dr=receipt)
+        # send the complete request to the repository
+        cr = conn.complete_deposit(dr=receipt)
 
     # storage manager instance
     sm = store.StoreFactory.get()
 
     # find out if this was an error document, and throw an error if so
     # (recording deposited/failed on the deposit_record along the way)
-    if isinstance(cr, sword2.Error_Document):
+    if cr is None:
+        deposit_record.completed_status = "none"
+        msg = "Complete request ignored, as repository is '{x}' which does not support this operation".format(x=acc.repository_software)
+        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+    elif isinstance(cr, sword2.Error_Document):
         deposit_record.completed_status = "failed"
         msg = "Complete request failed with status {x}".format(x=cr.code)
         sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
