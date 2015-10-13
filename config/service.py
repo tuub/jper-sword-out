@@ -70,3 +70,6 @@ DEFAULT_SINCE_DATE = "1970-01-01T00:00:00Z"
 
 # how many seconds in between each run of the script
 RUN_THROTTLE = 2
+
+# whether to store sword response data (receipt, etc).  Recommend only to store during testing operation
+STORE_RESPONSE_DATA = False

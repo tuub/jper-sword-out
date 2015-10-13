@@ -119,7 +119,8 @@ def process_notification(acc, note, since):
     except DepositException as e:
         # save the actual deposit record, ensuring that the metadata_status is set the way we expect
         dr.metadata_status = "failed"
-        dr.save()
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            dr.save()
 
         # kick the exception upstairs for continued handling
         raise e
@@ -127,7 +128,8 @@ def process_notification(acc, note, since):
     # beyond this point, we are only dealing with content, so if there's no content to deposit we can
     # wrap up and return
     if link is None:
-        dr.save()
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            dr.save()
         return
 
     # if we get to here, we have to deal with the content deposit
@@ -148,7 +150,8 @@ def process_notification(acc, note, since):
         except DepositException as e:
             # save the actual deposit record, ensuring the content_status is set the way we expect
             dr.content_status = "failed"
-            dr.save()
+            if app.config.get("STORE_RESPONSE_DATA", False):
+                dr.save()
 
             # delete the locally stored content
             tmp.delete(local_id)
@@ -167,13 +170,15 @@ def process_notification(acc, note, since):
     except DepositException as e:
         # save the actual deposit record, ensuring the completed_status is set the way we expect
         dr.completed_status = "failed"
-        dr.save()
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            dr.save()
 
         # kick the exception upstairs for continued handling
         raise e
 
     # that's it, we've successfully deposited this notification to the repository along with all its content
-    dr.save()
+    if app.config.get("STORE_RESPONSE_DATA", False):
+        dr.save()
     return
 
 def _cache_content(link, note, acc):
@@ -217,7 +222,7 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=ip)
 
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
-    if receipt.dom is not None:
+    if receipt.dom is not None and app.config.get("STORE_RESPONSE_DATA", False):
         content = receipt.to_xml()
         sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
 
@@ -226,19 +231,22 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     if isinstance(receipt, sword2.Error_Document):
         deposit_record.metadata_status = "failed"
         msg = "Metadata deposit failed with status {x}".format(x=receipt.code)
-        sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
         raise DepositException(msg)
     else:
-        msg = "Metadata deposit was successful"
-        sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            msg = "Metadata deposit was successful"
+            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
         deposit_record.metadata_status = "deposited"
 
     # if this wasn't an error document, then we have a legitimate response, but we need the deposit receipt
     # so get it explicitly, and store it
     if receipt.dom is None:
         receipt = conn.get_deposit_receipt(receipt.edit)
-        content = receipt.to_xml()
-        sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            content = receipt.to_xml()
+            sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
 
     # if this is an eprints repository, also send the XML as a file
     if acc.repository_software in ["eprints"]:
@@ -272,11 +280,13 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
     if isinstance(ur, sword2.Error_Document):
         deposit_record.content_status = "failed"
         msg = "Content deposit failed with status {x}".format(x=ur.code)
-        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
         raise DepositException(msg)
     else:
-        msg = "Content deposit was successful"
-        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            msg = "Content deposit was successful"
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
         deposit_record.content_status = "deposited"
 
     return
@@ -299,16 +309,19 @@ def complete_deposit(receipt, acc, deposit_record):
     # (recording deposited/failed on the deposit_record along the way)
     if cr is None:
         deposit_record.completed_status = "none"
-        msg = "Complete request ignored, as repository is '{x}' which does not support this operation".format(x=acc.repository_software)
-        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            msg = "Complete request ignored, as repository is '{x}' which does not support this operation".format(x=acc.repository_software)
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
     elif isinstance(cr, sword2.Error_Document):
         deposit_record.completed_status = "failed"
         msg = "Complete request failed with status {x}".format(x=cr.code)
-        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
         raise DepositException(msg)
     else:
-        msg = "Complete request was successful"
-        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            msg = "Complete request was successful"
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
         deposit_record.completed_status = "deposited"
 
     return

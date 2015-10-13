@@ -69,10 +69,14 @@ class TestDeposit(ESTestCase):
         self.store_impl = app.config.get("STORE_IMPL")
         app.config["STORE_IMPL"] = "octopus.modules.store.store.TempStore"
 
+        self.store_responses = app.config.get("STORE_RESPONSE_DATA")
+        app.config["STORE_RESPONSE_DATA"] = True
+
     def tearDown(self):
         http.get = self.old_http_get
         http.get_stream = self.old_http_get_stream
 
+        """
         sm = store.StoreFactory.get()
         for s in self.stored:
             sm.delete(s)
@@ -81,8 +85,10 @@ class TestDeposit(ESTestCase):
         dirs = paths.list_subdirs(tmp.dir)
         for d in dirs:
             tmp.delete(d)
+        """
 
         app.config["STORE_IMPL"] = self.store_impl
+        app.config["STORE_RESPONSE_DATA"] = self.store_responses
 
         super(TestDeposit, self).tearDown()
 
