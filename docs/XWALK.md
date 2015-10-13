@@ -119,6 +119,14 @@ An example Atom Entry document containing the metadata listed above is shown her
     </entry>
 ```
 
+## Account Setup
+
+To configure your Router account for SWORDv2 integration, you need to provide the following:
+
+1. A username and password for a user in your repository who has the rights to create content via SWORDv2
+2. A collection URL into which the system will deposit the content
+3. Your preferred packaging format for zip files being deposited.  By default (and the only option in this first version) this will be http://purl.org/net/sword/package/SimpleZip
+
 ## EPrints Setup
 
 EPrints (3.3+) is configured by default to accept incoming requests via SWORDv2, so the router's deposit mechanism
