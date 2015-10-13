@@ -209,13 +209,12 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     entry = sword2.Entry()
     xwalk.to_dc_rioxx(note, entry)
 
-    kwargs = {}
-    # determine the content type to send
-    #if acc.repository_software in ["eprints"]:
-    #    kwargs["entry_content_type"] = "application/x-eprints-import-xslt-atom"
-
     # do the deposit
-    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=not complete, **kwargs)
+    ip = not complete
+    if acc.repository_software in ["eprints"]:
+        # because EPrints doesn't allow "complete" requests, we leave everything in_progress for the purposes of consistency
+        ip = True
+    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=ip)
 
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
     if receipt.dom is not None:
@@ -237,16 +236,20 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     # if this wasn't an error document, then we have a legitimate response, but we need the deposit receipt
     # so get it explicitly, and store it
     if receipt.dom is None:
-        dr = conn.get_deposit_receipt(receipt.edit)
-        content = dr.to_xml()
+        receipt = conn.get_deposit_receipt(receipt.edit)
+        content = receipt.to_xml()
         sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
+
+    # if this is an eprints repository, also send the XML as a file
+    if acc.repository_software in ["eprints"]:
+        xmlhandle = StringIO(str(entry))
+        conn.add_file_to_resource(receipt.edit_media, xmlhandle, "sword.xml", "text/xml")
 
     return receipt
 
 def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
-
 
     # FIXME: not that neat, but eprints has special behaviours that we need to accommodate.  So, in the eprints
     # case we add the package as a file to the resource, but in all other cases we append the files to the
