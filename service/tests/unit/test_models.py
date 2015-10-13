@@ -68,6 +68,14 @@ class TestModels(ESTestCase):
         del rs.last_tried
         assert rs.last_tried is None
 
+        # try deactivating and activating the status
+        rs.activate()
+        assert rs.status == "succeeding"
+        assert rs.retries == 0
+
+        rs.deactivate()
+        assert rs.status == "failing"
+
 
     def test_03_deposit_record(self):
         # make a blank one

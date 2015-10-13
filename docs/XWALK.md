@@ -132,11 +132,16 @@ To configure your Router account for SWORDv2 integration, you need to provide th
 EPrints (3.3+) is configured by default to accept incoming requests via SWORDv2, so the router's deposit mechanism
 will automatically work.  The behaviour you will see is as follows:
 
-* Notifications with no fulltext content (at this stage, rare to non-existent) - they will be created in /id/content and moved directly into the review space
+1. Metadata will be deposited and crosswalked as per the EPrints Atom Import plugin (see below) into /id/content
 
-* Notifications with fulltext (virtually all content will meet this criteria) - they will be created in /id/content and remain in the sword user's work area
+2. The metadata will also be supplied as an XML file attached to the EPrint
 
-All metadata will be converted to EPrints metadata following the rules laid down in the Atom XSLT ingest plugin.  This crosswalk is part of your EPrints souce, and can be found in:
+3. If there are fulltext files associated, they will be attached to the EPrint
+
+4. The EPrint will be left in the sword user's workarea
+
+All metadata will be converted to EPrints metadata following the rules laid down in the Atom XSLT import plugin.
+This crosswalk is part of your EPrints souce, and can be found in:
 
     /opt/eprints3/perl_lib/EPrints/Plugin/Import/XSLT/Atom.xsl
 

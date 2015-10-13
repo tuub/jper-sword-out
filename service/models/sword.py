@@ -86,6 +86,15 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
         limit = dates.before_now(delay)
         return ts < limit
 
+    def activate(self):
+        self.status = "succeeding"
+        self.retries = 0
+        self.last_tried = None
+
+    def deactivate(self):
+        self.status = "failing"
+        self.retries = 0
+
 
 class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
     """

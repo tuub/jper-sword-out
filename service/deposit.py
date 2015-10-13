@@ -47,6 +47,10 @@ def process_account(acc):
 
     # Query JPER for the notifications for this account
     since = status.last_deposit_date
+    if since is None:
+        since = app.config.get("DEFAULT_SINCE_DATE")
+        status.last_deposit_date = since
+
     j = client.JPER(api_key=acc.api_key)
     try:
         for note in j.iterate_notifications(since, repository_id=acc.id):
