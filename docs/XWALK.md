@@ -119,6 +119,21 @@ An example Atom Entry document containing the metadata listed above is shown her
     </entry>
 ```
 
-## DSpace Notes
+## EPrints Setup
+
+EPrints (3.3+) is configured by default to accept incoming requests via SWORDv2, so the router's deposit mechanism
+will automatically work.  The behaviour you will see is as follows:
+
+* Notifications with no fulltext content (at this stage, rare to non-existent) - they will be created in /id/content and moved directly into the review space
+
+* Notifications with fulltext (virtually all content will meet this criteria) - they will be created in /id/content and remain in the sword user's work area
+
+All metadata will be converted to EPrints metadata following the rules laid down in the Atom XSLT ingest plugin.  This crosswalk is part of your EPrints souce, and can be found in:
+
+    /opt/eprints3/perl_lib/EPrints/Plugin/Import/XSLT/Atom.xsl
+
+By default it will crosswalk the absolute basic Atom metadata, so you may wish to modify this file to fit with your EPrints schema as you see fit.
+
+## DSpace Setup
 
 * dc:dateAvailable should be configured to go to your embargo field
