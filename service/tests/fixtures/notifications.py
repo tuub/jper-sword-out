@@ -59,7 +59,7 @@ BASE_NOTIFICATION = {
     },
 
     "content" : {
-        "packaging_format" : "http://router.jisc.ac.uk/packages/FilesAndJATS",
+        "packaging_format" : "https://pubrouter.jisc.ac.uk/FilesAndJATS",
         "store_id" : "abc"
     },
 
@@ -160,7 +160,7 @@ OUTGOING = {
     "event" : "submission",
 
     "content" : {
-        "packaging_format" : "http://router.jisc.ac.uk/packages/FilesAndJATS",
+        "packaging_format" : "https://pubrouter.jisc.ac.uk/FilesAndJATS",
     },
 
     "links" : [
@@ -184,7 +184,7 @@ OUTGOING = {
             "type" : "package",
             "format" : "application/zip",
             "url" : "http://router.jisc.ac.uk/api/v1/notification/1234567890/content",
-            "packaging" : "http://router.jisc.ac.uk/packages/FilesAndJATS"
+            "packaging" : "https://pubrouter.jisc.ac.uk/FilesAndJATS"
         }
     ],
 

@@ -148,7 +148,7 @@ class TestModels(TestCase):
         note = models.OutgoingNotification(source)
 
         # try getting the two link types we know are in the notification
-        faj = note.get_package_link("http://router.jisc.ac.uk/packages/FilesAndJATS")
+        faj = note.get_package_link("https://pubrouter.jisc.ac.uk/FilesAndJATS")
         assert faj is not None
         assert faj.get("url") == "http://router.jisc.ac.uk/api/v1/notification/1234567890/content"
 
