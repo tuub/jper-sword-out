@@ -1,3 +1,7 @@
+"""
+Tests on the crosswalk from JPER format to SWORD-supported DC/RIOXX XML
+"""
+
 # from octopus.modules.es.testindex import ESTestCase
 from unittest import TestCase
 from service.tests import fixtures

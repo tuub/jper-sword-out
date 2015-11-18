@@ -1,19 +1,40 @@
+"""
+Models for representing the sword objects supporting the deposit run
+"""
+
 from octopus.lib import dataobj, dates
 from service import dao
 from datetime import datetime
 
 class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
     """
-    {
-        "id" : "<id of the repository account>",
-        "last_updated" : "<date this record was last updated>",
-        "created_date" : "<date this record was created>",
+    Class to represent the operational status of a repository account
 
-        "last_deposit_date" : "<date of analysed date of last deposited notification>",
-        "status" : "<succeeding|failing>"
-    }
+    Structured as follows:
+
+    ::
+
+        {
+            "id" : "<id of the repository account>",
+            "last_updated" : "<date this record was last updated>",
+            "created_date" : "<date this record was created>",
+
+            "last_deposit_date" : "<date of analysed date of last deposited notification>",
+            "status" : "<succeeding|failing|problem>",
+            "retries" : <number of attempted deposits>,
+            "last_tried" : "<datestamp of last attempted deposit>"
+        }
     """
     def __init__(self, raw=None):
+        """
+        Create a new instance of the RepositoryStatus object, optionally around the
+        raw python dictionary.
+
+        If supplied, the raw dictionary will be validated against the allowed structure of this
+        object, and an exception will be raised if it does not validate
+
+        :param raw: python dict object containing the metadata
+        """
         struct = {
             "fields" : {
                 "id" : {"coerce" : "unicode"},
@@ -32,45 +53,104 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
 
     @property
     def last_deposit_date(self):
+        """
+        Last time a successful deposit took place, as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :return: last deposit date
+        """
         return self._get_single("last_deposit_date", coerce=dataobj.date_str())
 
     @last_deposit_date.setter
     def last_deposit_date(self, val):
+        """
+        Set the last time a successful deposit took place, as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :param val: last deposit date
+        """
         self._set_single("last_deposit_date", val, coerce=dataobj.date_str())
 
     @property
     def status(self):
+        """
+        Current status of the repository in terms of deposit (succeeding, failing, problem)
+
+        :return: the current deposit status
+        """
         return self._get_single("status", coerce=dataobj.to_unicode())
 
     @status.setter
     def status(self, val):
+        """
+        Set the current status of the repository deposit
+
+        :param val: current status, must be one of succeeding, problem, failing
+        """
         self._set_single("status", val, coerce=dataobj.to_unicode(), allowed_values=[u"succeeding", u"problem", u"failing"])
 
     @property
     def retries(self):
+        """
+        Number of retries so far attempted against "problem" repository
+
+        :return: number of retries
+        """
         return self._get_single("retries", coerce=dataobj.to_int(), default=0)
 
     @retries.setter
     def retries(self, val):
+        """
+        Set the number of retries against the repository since the "problem" status was set
+
+        :param val: number of retries
+        """
         self._set_single("retries", val, coerce=dataobj.to_int())
 
     @property
     def last_tried(self):
+        """
+        Date the last time a deposit which wasn't successful was attempted, as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :return: last tried date
+        """
         return self._get_single("last_tried", coerce=dataobj.date_str())
 
     @last_tried.deleter
     def last_tried(self):
+        """
+        Remove the last tried date, which you might do if the repository has started working again
+        """
         self._delete("last_tried")
 
     @property
     def last_tried_timestamp(self):
+        """
+        Date the last time a deposit which wasn't successful was attempted, as a datetime object
+
+        :return: last tried date
+        """
         return self._get_single("last_tried", coerce=dataobj.to_datestamp())
 
     @last_tried.setter
     def last_tried(self, val):
+        """
+        Set the last tried date, in the event that a repository is suffering a problem. as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :param val: last tried date
+        """
         self._set_single("last_tried", val, coerce=dataobj.date_str())
 
     def record_failure(self, limit):
+        """
+        Record a failed attempt to deposit to this repository.
+
+        The limit specifies the number of retries before the repository moves from the status "problem" to "failing"
+
+        This will set the last_tried date, and increment the number of retries by 1, and set the status to "problem".
+
+        If the new retry number is greater than the supplied limit, the number of last_tried date will be removed, retries will be set to 0, and the status set to "failing"
+
+        :param limit: maximum number of retries before repository is considered to be completely failing
+        """
         self.last_tried = dates.now()
         self.retries = self.retries + 1
         self.status = "problem"
@@ -80,6 +160,14 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
             self.status = "failing"
 
     def can_retry(self, delay):
+        """
+        For a "problem" repository, is it time to re-try again yet, given the delay.
+
+        This will compare the last_tried date to the current time, and determine if the delay has elapsed
+
+        :param delay: retry delay in seconds
+        :return: True if suitable to re-try again, False if not
+        """
         ts = self.last_tried_timestamp
         if ts is None:
             return True
@@ -87,31 +175,56 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
         return ts < limit
 
     def activate(self):
+        """
+        Set the current status to active.
+
+        This will reset the current retries to 0, and remove the last_tried date, and set the status to "succeeding"
+        """
         self.status = "succeeding"
         self.retries = 0
         self.last_tried = None
 
     def deactivate(self):
+        """
+        Set the current status to failing
+
+        This will reset the current retries to 0 and set the status to "failing"
+        """
         self.status = "failing"
         self.retries = 0
 
 
 class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
     """
-    {
-        "id" : "<opaque id of the deposit - also used as the local store id for the response content>",
-        "last_updated" : "<date this record was last updated>",
-        "created_date" : "<date this record was created>",
+    Class to represent the record of a deposit of a single notification to a repository
 
-        "repository" : "<account id of the repository>",
-        "notification" : "<notification id that the record is about>",
-        "deposit_date" : "<date of attempted deposit>",
-        "metadata_status" : "<deposited|failed>",
-        "content_status" : "<deposited|none|failed>",
-        "completed_status" : "<deposited|none|failed>"
-    }
+    Of the form:
+
+    ::
+
+        {
+            "id" : "<opaque id of the deposit - also used as the local store id for the response content>",
+            "last_updated" : "<date this record was last updated>",
+            "created_date" : "<date this record was created>",
+
+            "repository" : "<account id of the repository>",
+            "notification" : "<notification id that the record is about>",
+            "deposit_date" : "<date of attempted deposit>",
+            "metadata_status" : "<deposited|failed>",
+            "content_status" : "<deposited|none|failed>",
+            "completed_status" : "<deposited|none|failed>"
+        }
     """
     def __init__(self, raw=None):
+        """
+        Create a new instance of the RepositoryStatus object, optionally around the
+        raw python dictionary.
+
+        If supplied, the raw dictionary will be validated against the allowed structure of this
+        object, and an exception will be raised if it does not validate
+
+        :param raw: python dict object containing the metadata
+        """
         struct = {
             "fields" : {
                 "id" : {"coerce" : "unicode"},
@@ -131,57 +244,139 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
 
     @property
     def repository(self):
+        """
+        The repository account id this deposit was to
+
+        :return: account id
+        """
         return self._get_single("repository", coerce=dataobj.to_unicode())
 
     @repository.setter
     def repository(self, val):
+        """
+        Set the repository account id
+
+        :param val: account id
+        :return:
+        """
         self._set_single("repository", val, coerce=dataobj.to_unicode())
 
     @property
     def notification(self):
+        """
+        The notification id that was deposited
+
+        :return: notification id
+        """
         return self._get_single("notification", coerce=dataobj.to_unicode())
 
     @notification.setter
     def notification(self, val):
+        """
+        Set the notification id that was deposited
+
+        :param val: notification id
+        :return:
+        """
         self._set_single("notification", val, coerce=dataobj.to_unicode())
 
     @property
     def deposit_date(self):
-        return self._get_single("deposit_date", coerce=dataobj.to_unicode())
+        """
+        get the deposit date of the notification, as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :return: deposit date
+        """
+        return self._get_single("deposit_date", coerce=dataobj.date_str())
 
     @deposit_date.setter
     def deposit_date(self, val):
-        self._set_single("deposit_date", val, coerce=dataobj.to_unicode())
+        """
+        set the deposit date, as a string of the form YYYY-MM-DDTHH:MM:SSZ
+
+        :param val:deposit date
+        :return:
+        """
+        self._set_single("deposit_date", val, coerce=dataobj.date_str())
 
     @property
     def deposit_datestamp(self):
+        """
+        Get the deposit date of the notification as a datetime object
+
+        :return: deposit date
+        """
         return self._get_single("deposit_date", coerce=dataobj.to_datestamp())
 
     @property
     def metadata_status(self):
+        """
+        Get the status of the metadata deposit.  deposited or failed
+
+        :return: metadata deposit status
+        """
         return self._get_single("metadata_status", coerce=dataobj.to_unicode())
 
     @metadata_status.setter
     def metadata_status(self, val):
+        """
+        Set the status of the metadat adeposit.  Must be one of "deposited" or "failed"
+
+        :param val: metadata deposit status
+        :return:
+        """
         self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed"])
 
     @property
     def content_status(self):
+        """
+        Get the status of the content deposit.  deposited, none or failed
+
+        :return: content deposit status
+        """
         return self._get_single("content_status", coerce=dataobj.to_unicode())
 
     @content_status.setter
     def content_status(self, val):
+        """
+        Set the content deposit status.  Must be one of "deposited", "none" or "failed"
+
+        :param val: content deposit status
+        :return:
+        """
         self._set_single("content_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"none", u"failed"])
 
     @property
     def completed_status(self):
+        """
+        Get the status of the completion request.  deposited, none or failed
+
+        :return: completion request status
+        """
         return self._get_single("completed_status", coerce=dataobj.to_unicode())
 
     @completed_status.setter
     def completed_status(self, val):
+        """
+        Set the completed request status.  Must be one of "deposited", "none" or "failed"
+
+        :param val: completed request status
+        :return:
+        """
         self._set_single("completed_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"none", u"failed"])
 
     def was_successful(self):
+        """
+        Determine whether this was a successful deposit or not, based on the metadata, content and completed statuses.
+
+        A deposit can be determined to be successful if:
+
+        * metadata_status is "deposited"
+        * content_status is "deposited" or "none"
+        * complete_status is "deposited" or "none"
+
+        :return: True if successful, False if not
+        """
         mds = self.metadata_status == "deposited"
         cds = self.content_status in ["deposited", "none"]
         comp = self.completed_status in ["deposited", "none"]

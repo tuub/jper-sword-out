@@ -1,13 +1,32 @@
+"""
+Fixtures for testing notifications
+"""
+
 from copy import deepcopy
 from octopus.lib import dates, paths
 import os
 
 RESOURCES = paths.rel2abs(__file__, "..", "resources")
+"""Path to the test resources directory, calculated relative to this file"""
 
 class NotificationFactory(object):
+    """
+    Class which provides access to the various fixtures used for testing the notifications
+    """
 
     @classmethod
     def notification_list(cls, since, page=1, pageSize=10, count=1, ids=None, analysis_dates=None):
+        """
+        Example notification list
+
+        :param since: since date for list
+        :param page: page number of list
+        :param pageSize: number of results in list
+        :param count: total number of results
+        :param ids: ids of notifications to be included
+        :param analysis_dates: analysis dates of notifications; should be same length as ids, as they will be tied up
+        :return:
+        """
         nl = deepcopy(NOTIFICATION_LIST)
         nl["since"] = since
         nl["page"] = page
@@ -27,23 +46,44 @@ class NotificationFactory(object):
 
     @classmethod
     def error_response(cls):
+        """
+        JPER API error response
+
+        :return: error response
+        """
         return deepcopy(LIST_ERROR)
 
     @classmethod
     def unrouted_notification(cls):
+        """
+        Example unrouted notification
+
+        :return:
+        """
         return deepcopy(BASE_NOTIFICATION)
 
     @classmethod
     def outgoing_notification(cls):
+        """
+        Example outgoing notification
+
+        :return:
+        """
         return deepcopy(OUTGOING)
 
     @classmethod
     def example_package_path(cls):
+        """
+        Path to binary file which can be used for testing
+
+        :return:
+        """
         return os.path.join(RESOURCES, "example.zip")
 
 LIST_ERROR = {
     "error" : "request failed"
 }
+"""Example API error"""
 
 BASE_NOTIFICATION = {
     "id" : "1234567890",
@@ -141,6 +181,7 @@ BASE_NOTIFICATION = {
         "subject" : ["science", "technology", "arts", "medicine"]
     }
 }
+"""Example base notification"""
 
 NOTIFICATION_LIST = {
     "since" : None,
@@ -150,6 +191,7 @@ NOTIFICATION_LIST = {
     "total" : 1,
     "notifications" : []
 }
+"""structure for notification list"""
 
 OUTGOING = {
 
@@ -251,3 +293,4 @@ OUTGOING = {
         "subject" : ["science", "technology", "arts", "medicine"]
     }
 }
+"""example outgoing notification"""

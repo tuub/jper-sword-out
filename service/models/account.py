@@ -1,4 +1,6 @@
-
+"""
+Model objects used to represent data from the JPER account system
+"""
 
 from flask.ext.login import UserMixin
 from werkzeug import generate_password_hash, check_password_hash
@@ -8,121 +10,93 @@ from service import dao
 from octopus.lib import dataobj
 
 class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
-    '''
-    {
-        "id" : "<unique persistent account id>",
-        "created_date" : "<date account created>",
-        "last_updated" : "<date account last modified>",
-
-        "email" : "<account contact email>",
-        "contact_name" : "<name of key contact>",
-        "password" : "<hashed password for ui login>",
-        "api_key" : "<api key for api auth>",
-        "role" : ["<account role: repository, provider, admin>"],
-
-        "repository" : {
-            "name" : "<name of the repository>",
-            "url" : "<url for the repository>",
-            "software" : "<repository software name>"
-        },
-
-        "sword_repository" : {
-            "username" : "<username for the router to authenticate with the repository>",
-            "password" : "<reversibly encrypted password for the router to authenticate with the repository>",
-            "collection" : "<url for deposit collection to receive content from the router>"
-        },
-
-        "packaging" : [
-            "<identifier - in order of preference - that should be available for this repo.  Esp. via sword interface>"
-        ],
-
-        "embargo" : {
-            "duration" : "<length of default embargo>",
-            "from" : "<reference to field in data to measure embargo from>"
-        }
-    }
-    '''
-
-    @property
-    def hashed_password(self):
-        return self._get_single("password", coerce=self._utf8_unicode())
-
-    @hashed_password.setter
-    def hashed_password(self, val):
-        self._set_single("password", val, coerce=self._utf8_unicode())
-
-    def set_password(self, password):
-        coerced = self._utf8_unicode()(password)
-        self._set_single("password", generate_password_hash(coerced), coerce=self._utf8_unicode())
-
-    def check_password(self, password):
-        coerced = self._utf8_unicode()(password)
-        existing = self.hashed_password
-        if existing is None:
-            return False
-        return check_password_hash(existing, coerced)
-
-    def clear_password(self):
-        self._delete("password")
-
-    @property
-    def is_super(self):
-        return self.has_role(app.config["ACCOUNT_SUPER_USER_ROLE"])
-
-    def has_role(self, role):
-        return role in self.role
-
-    @property
-    def role(self):
-        return self._get_list("role", coerce=self._utf8_unicode())
-
-    def add_role(self, role):
-        self._add_to_list("role", role, coerce=self._utf8_unicode())
-
-    @role.setter
-    def role(self, role):
-        self._set_list("role", role, coerce=self._utf8_unicode())
+    """
+    Account model which mirrors the JPER account model, providing only the functions
+    we need within the sword depositor
+    """
 
     @property
     def api_key(self):
+        """
+        Get the API key for this account
+
+        :return: the account's api key
+        """
         return self._get_single("api_key", coerce=self._utf8_unicode())
 
     @property
     def packaging(self):
+        """
+        Get the list of supported packaging formats for this account
+
+        :return: list of packaging formats
+        """
         return self._get_list("packaging", coerce=self._utf8_unicode())
 
     def add_packaging(self, val):
+        """
+        Add a packaging format to the list of supported formats
+
+        :param val: format identifier
+        :return:
+        """
         self._add_to_list("packaging", val, coerce=self._utf8_unicode(), unique=True)
 
     def add_sword_credentials(self, username, password, collection):
+        """
+        Add the sword credentials for the user
+
+        :param username: username to deposit to repository as
+        :param password: password of repository user account
+        :param collection: collection url to deposit to
+        :return:
+        """
         self._set_single("sword_repository.username", username, coerce=self._utf8_unicode())
         self._set_single("sword_repository.password", password, coerce=self._utf8_unicode())
         self._set_single("sword_repository.collection", collection, coerce=self._utf8_unicode())
 
     @property
     def sword_collection(self):
+        """
+        Get the url of the collection in the repository to deposit to
+
+        :return: collection url
+        """
         return self._get_single("sword_repository.collection", coerce=self._utf8_unicode())
 
     @property
     def sword_username(self):
+        """
+        Get the username of the repository account to deposit as
+
+        :return: username
+        """
         return self._get_single("sword_repository.username", coerce=self._utf8_unicode())
 
     @property
     def sword_password(self):
+        """
+        Get the password for the repository user to deposit as
+
+        :return: password
+        """
         return self._get_single("sword_repository.password", coerce=self._utf8_unicode())
 
     @property
     def repository_software(self):
+        """
+        Get the name of the repository software we are depositing to
+
+        :return: software name (e.g. eprints, dspace)
+        """
         return self._get_single("repository.software", coerce=self._utf8_unicode())
 
     @repository_software.setter
     def repository_software(self, val):
+        """
+        Set the name of the repository software we are depositing to
+
+        :param val: software name
+        :return:
+        """
         self._set_single("repository.software", val, coerce=self._utf8_unicode())
-
-    def can_log_in(self):
-        return True
-
-    def remove(self):
-        self.delete()
-
-

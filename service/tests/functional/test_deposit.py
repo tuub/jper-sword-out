@@ -1,3 +1,26 @@
+"""
+Test the full range of deposit features against a test repository
+
+DO NOT RUN THIS TEST AS-IS
+
+In order to successfully run this test you need a repository set up to receive the deposits via SWORDv2, and
+you need to tell this class the parameters of the deposit.
+
+For example, if depositing against a Simple Sword Server test instance, you could use something like
+
+::
+
+    COL = "http://localhost:8080/col-uri/dbc32f11-3ffa-4fdd-88bc-af4544fa97d9"
+    ERR_COL = "http://localhost:8080/col-uri/thisdoesntexist"
+    UN = "sword"
+    PW = "sword"
+    REPO_SOFTWARE = "SSS"
+    PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
+
+Here, the only thing you would need to customise is the COL, to point to a collection which actually
+exists in SSS.
+
+"""
 # from unittest import TestCase
 from octopus.modules.es.testindex import ESTestCase
 from service import deposit, models

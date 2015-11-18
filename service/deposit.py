@@ -1,3 +1,6 @@
+"""
+Main workflow engine which carries out the mediation between JPER and the SWORD-enabled repositories
+"""
 import sword2, uuid
 from service import xwalk, models
 from octopus.modules.store import store
@@ -9,9 +12,19 @@ from octopus.core import app
 from octopus.lib import dates, http
 
 class DepositException(Exception):
+    """
+    Generic exception to be thrown in the case of deposit error
+    """
     pass
 
 def run(fail_on_error=True):
+    """
+    Execute a single pass on all the accounts that have sword activated and process all of their
+    notifications since the last time their account was synchronised, until now
+
+    :param fail_on_error: cease execution if an exception is raised
+    """
+
     # list all of the accounts that have sword activated
     accs = models.Account.with_sword_activated()
 
@@ -25,6 +38,15 @@ def run(fail_on_error=True):
                 raise e
 
 def process_account(acc):
+    """
+    Retrieve the notifications in JPER associated with this account and relay them on to their sword-enabled repository
+
+    If the account is in status "failing", it will be skipped.
+
+    If the account is in status "problem", and the retry delay has elapsed, it will be re-tried, otherwise it will be skipped
+
+    :param acc: the account whose notifications to process
+    """
     # get the current status of the repository
     status = models.RepositoryStatus.pull(acc.id)
 
@@ -77,6 +99,17 @@ def process_account(acc):
 
 
 def process_notification(acc, note, since):
+    """
+    For the given account and notification, deliver the notification to the sword-enabled repository.
+
+    The since date is required to check for duplication of notifications, this will avoid situations where the
+    granularity of the since date and the last_deposit_date are too large and there are some processed and some unprocessed
+    notifications all with the same timestamp
+
+    :param acc: user account of repository
+    :param note: notification to be deposited
+    :param since: earliest date which the current set of requests is made from.
+    """
     # for type inspection...
     assert isinstance(acc, models.Account)
     assert isinstance(note, jmod.OutgoingNotification)
@@ -186,6 +219,15 @@ def process_notification(acc, note, since):
     return
 
 def _cache_content(link, note, acc):
+    """
+    Make a local copy of the content referenced by the link
+
+    This will copy the content retrieved via the link into the temp store for use in the onward relay
+
+    :param link: url to content
+    :param note: notification we are working on
+    :param acc: user account we are working as
+    """
     j = client.JPER(api_key=acc.api_key)
     try:
         stream, headers = j.get_content(link.get("url"))
@@ -208,6 +250,15 @@ def _cache_content(link, note, acc):
     return local_id, out
 
 def metadata_deposit(note, acc, deposit_record, complete=False):
+    """
+    Deposit the metadata from the notification in the target repository
+
+    :param note: the notification to be deposited
+    :param acc: the account we are working as
+    :param deposit_record: provenance object for recording actions during this deposit process
+    :param complete: True/False; should we tell the repository that the deposit process is complete (do this if there is no binary deposit to follow)
+    :return: the deposit receipt from the sword client
+    """
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
@@ -260,6 +311,15 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     return receipt
 
 def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
+    """
+    Deposit the binary package content to the target repository
+
+    :param receipt: deposit receipt from the metadata deposit
+    :param file_handle: the file handle on the binary content to deliver
+    :param packaging: the package format identifier
+    :param acc: the account we are working as
+    :param deposit_record: provenance object for recording actions during this deposit process
+    """
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
@@ -297,6 +357,13 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
 
 
 def complete_deposit(receipt, acc, deposit_record):
+    """
+    Issue a "complete" request against the repository, to indicate that no further files are coming
+
+    :param receipt: deposit receipt from previous metadata deposit
+    :param acc: account we are working as
+    :param deposit_record: provenance object for recording actions during this deposit process
+    """
     # EPrints repositories can't handle the "complete" request
     cr = None
     if acc.repository_software not in ["eprints"]:
@@ -330,181 +397,3 @@ def complete_deposit(receipt, acc, deposit_record):
 
     return
 
-"""
-Experimental code - does not scale due to requirements to read file into memory for delivery
-def multipart_deposit(note, file_handle, packaging, acc, deposit_record):
-    # create a connection object
-    conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
-
-    # storage manager instance for use later
-    sm = store.StoreFactory.get()
-
-    # assemble the atom entry for deposit
-    entry = sword2.Entry()
-    xwalk.to_dc_rioxx(note, entry)
-
-    # do the deposit
-    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry,
-                          payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging)
-
-    # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
-    if receipt.dom is not None:
-        content = receipt.to_xml()
-        sm.store(deposit_record.id, "multipart_deposit_response.xml", source_stream=StringIO(content))
-
-    # find out if this was an error document, and throw an error if so
-    # (recording deposited/failed on the deposit_record along the way)
-    if isinstance(receipt, sword2.Error_Document):
-        deposit_record.metadata_status = "failed"
-        msg = "Metadata deposit failed with status {x}".format(x=receipt.code)
-        sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
-
-        deposit_record.content_status = "failed"
-        msg = "Content deposit failed with status {x}".format(x=receipt.code)
-        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
-
-        deposit_record.completed_status = "failed"
-        msg = "Complete request failed with status {x}".format(x=receipt.code)
-        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
-
-        raise DepositException(msg)
-
-    else:
-        msg = "Metadata deposit was successful"
-        sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
-        deposit_record.metadata_status = "deposited"
-
-        msg = "Content deposit was successful"
-        sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
-        deposit_record.content_status = "deposited"
-
-        msg = "Complete request was successful"
-        sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
-        deposit_record.completed_status = "deposited"
-
-    # if this wasn't an error document, then we have a legitimate response, but we need the deposit receipt
-    # so get it explicitly, and store it
-    if receipt.dom is None:
-        dr = conn.get_deposit_receipt(receipt.edit)
-        content = dr.to_xml()
-        sm.store(deposit_record.id, "multipart_deposit_response.xml", source_stream=StringIO(content))
-
-    return receipt
-"""
-
-"""
-Experimental multipart deposit code - not viable just now due to scalability issues
-def _process_multipart_deposit(note, acc, dr, link, packaging):
-    # if there's no link, make the metadata deposit, complete and return
-    if link is None:
-        try:
-            receipt = metadata_deposit(note, acc, dr, complete=True)
-            # ensure the metadata status is set as we expect it
-            dr.metadata_status = "deposited"
-            # no need to do anything else so just return
-            return
-        except DepositException as e:
-            # save the actual deposit record, ensuring that the metadata_status is set the way we expect
-            dr.metadata_status = "failed"
-            dr.save()
-
-            # kick the exception upstairs for continued handling
-            raise e
-
-    # if we wind up here here, we have to deal with the multipart deposit
-
-    # first, get a copy of the file from the API into the local tmp store
-    local_id, path = _cache_content(link, note, acc)
-
-    # make a copy of the tmp store for removing the content later
-    tmp = store.StoreFactory.tmp()
-
-    # we can do the deposit from the locally stored file (which we need because we're going to use seek() on it
-    # which we can't do with the http stream)
-    with open(path, "rb") as f:
-        try:
-            multipart_deposit(note, f, packaging, acc, dr)
-            # ensure the content status is set as we expect it
-            dr.metadata_status = "deposited"
-            dr.content_status = "deposited"
-            dr.completed_status = "deposited"
-
-            # now we can get rid of the locally stored content
-            tmp.delete(local_id)
-
-        except DepositException as e:
-            # save the actual deposit record, ensuring the content_status is set the way we expect
-            dr.metadata_status = "failed"
-            dr.content_status = "failed"
-            dr.completed_status = "failed"
-            dr.save()
-
-            # delete the locally stored content
-            tmp.delete(local_id)
-
-            # kick the exception upstairs for continued handling
-            raise e
-
-def _process_standard_deposit(note, acc, dr, link, packaging):
-    # make the metadata deposit, determining whether to immediately complete the deposit if there is no link
-    # for content
-    try:
-        receipt = metadata_deposit(note, acc, dr, complete=link is None)
-        # ensure the metadata status is set as we expect it
-        dr.metadata_status = "deposited"
-    except DepositException as e:
-        # save the actual deposit record, ensuring that the metadata_status is set the way we expect
-        dr.metadata_status = "failed"
-        dr.save()
-
-        # kick the exception upstairs for continued handling
-        raise e
-
-    # beyond this point, we are only dealing with content, so if there's no content to deposit we can
-    # wrap up and return
-    if link is None:
-        dr.save()
-        return
-
-    # if we get to here, we have to deal with the content deposit
-
-    # first, get a copy of the file from the API into the local tmp store
-    local_id, path = _cache_content(link, note, acc)
-
-    # make a copy of the tmp store for removing the content later
-    tmp = store.StoreFactory.tmp()
-
-    # now we can do the deposit from the locally stored file (which we need because we're going to use seek() on it
-    # which we can't do with the http stream)
-    with open(path, "rb") as f:
-        try:
-            package_deposit(receipt, f, packaging, acc, dr)
-            # ensure the content status is set as we expect it
-            dr.content_status = "deposited"
-        except DepositException as e:
-            # save the actual deposit record, ensuring the content_status is set the way we expect
-            dr.content_status = "failed"
-            dr.save()
-
-            # delete the locally stored content
-            tmp.delete(local_id)
-
-            # kick the exception upstairs for continued handling
-            raise e
-
-    # now we can get rid of the locally stored content
-    tmp.delete(local_id)
-
-    # finally, complete the request
-    try:
-        complete_deposit(receipt, acc, dr)
-        # ensure the completed status is set as we expect it
-        dr.completed_status = "deposited"
-    except DepositException as e:
-        # save the actual deposit record, ensuring the completed_status is set the way we expect
-        dr.completed_status = "failed"
-        dr.save()
-
-        # kick the exception upstairs for continued handling
-        raise e
-"""

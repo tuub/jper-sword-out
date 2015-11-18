@@ -1,3 +1,7 @@
+"""
+Tests on the JPER client
+"""
+
 # from octopus.modules.es.testindex import ESTestCase
 from unittest import TestCase
 from octopus.lib import http

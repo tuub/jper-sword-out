@@ -1,3 +1,7 @@
+"""
+Tests on the deposit functions
+"""
+
 from octopus.modules.es.testindex import ESTestCase
 from service import deposit, models
 from octopus.modules.jper import client

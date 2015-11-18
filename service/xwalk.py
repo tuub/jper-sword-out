@@ -1,6 +1,18 @@
+"""
+Module that handles the conversion of JPER json formatted notifications to XML suitable for delivery via SWORDv2
+"""
 from octopus.modules.jper import models
 
 def to_dc_rioxx(note, entry):
+    """
+    Convert the supplied JPER notification to XML, embedded in the sword client's EntryDocument
+
+    See the overview system documentation for details of the field-to-field mappings used
+
+    :param note: the notification
+    :param entry: an EntryDocument to be populated
+    :return:
+    """
     # first register all the namespaces we're going to use
     entry.register_namespace("dc", "http://purl.org/dc/elements/")
     entry.register_namespace("dcterms", "http://purl.org/dc/terms/")

@@ -1,3 +1,7 @@
+"""
+Tests on the models
+"""
+
 from octopus.modules.es.testindex import ESTestCase
 from service import models
 from service.tests import fixtures

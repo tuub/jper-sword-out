@@ -1,7 +1,19 @@
+"""
+Module which controls the active status of depositing accounts
+"""
 from service import models
 
 
 def activate_deposit(acc_id):
+    """
+    Activate the repository's deposit process.
+
+    This sets the repository status to "succeeding", which in turn means the processor will
+    pick up this account and run deposits against the repo.
+
+    :param acc_id: account to activate
+    :return:
+    """
     # see if there's a repository status for this account
     rs = models.RepositoryStatus.pull(acc_id)
 
@@ -18,6 +30,15 @@ def activate_deposit(acc_id):
     rs.save()
 
 def deactivate_deposit(acc_id):
+    """
+    Deactivate the repository's deposit process
+
+    This sets the repository status to "failing", which in turn means the processor will ignore this
+    account in its normal run
+
+    :param acc_id: account to deactivate
+    :return:
+    """
     # see if there's a repository status for this account
     rs = models.RepositoryStatus.pull(acc_id)
 

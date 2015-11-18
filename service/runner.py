@@ -1,3 +1,9 @@
+"""
+Main script which executes the run cycle.
+
+It will start and remain running until it is shut-down externally, and will execute the deposit.run method
+repeatedly.
+"""
 from octopus.core import app, initialise, add_configuration
 
 if __name__ == "__main__":
