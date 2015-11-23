@@ -99,7 +99,6 @@ class TestDeposit(ESTestCase):
         http.get = self.old_http_get
         http.get_stream = self.old_http_get_stream
 
-        """
         sm = store.StoreFactory.get()
         for s in self.stored:
             sm.delete(s)
@@ -108,7 +107,6 @@ class TestDeposit(ESTestCase):
         dirs = paths.list_subdirs(tmp.dir)
         for d in dirs:
             tmp.delete(d)
-        """
 
         app.config["STORE_IMPL"] = self.store_impl
         app.config["STORE_RESPONSE_DATA"] = self.store_responses
