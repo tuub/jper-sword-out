@@ -1,5 +1,24 @@
 # JPER Core Metadata to Dublin Core/RIOXX XML
 
+This document describes the crosswalk from the notification metadata fields received via the JPER API to the
+ XML format supplied to repositories via SWORDv2.
+ 
+The approach to the crosswalk is:
+
+* If there is a DC or DCTerms field to which the value can be written, do so
+* If there is also a RIOXX field which is different, do that one too
+
+This means that repositories which impelement one or other or both will have good changes of extracting useful
+metadata.
+
+For information about the schemas see:
+
+* [Dubin Core](http://dublincore.org/documents/dcmi-terms/)
+* [RIOXX](http://rioxx.net/v2-0-final/)
+
+The following table lists the notification fields in the JSON, then the DC/RIOXX fields it will be transformed to, and
+any notes regarding the transformation:
+
 | JPER Field | DC/RIOXX Field | Notes |
 | ---------- | -------------- | ----- |
 | links.url | dc:identifier | As per the recommended use by RIOXX |
@@ -118,35 +137,3 @@ An example Atom Entry document containing the metadata listed above is shown her
         <dc:subject>medicine</dc:subject>
     </entry>
 ```
-
-## Account Setup
-
-To configure your Router account for SWORDv2 integration, you need to provide the following:
-
-1. A username and password for a user in your repository who has the rights to create content via SWORDv2
-2. A collection URL into which the system will deposit the content
-3. Your preferred packaging format for zip files being deposited.  By default (and the only option in this first version) this will be http://purl.org/net/sword/package/SimpleZip
-
-## EPrints Setup
-
-EPrints (3.3+) is configured by default to accept incoming requests via SWORDv2, so the router's deposit mechanism
-will automatically work.  The behaviour you will see is as follows:
-
-1. Metadata will be deposited and crosswalked as per the EPrints Atom Import plugin (see below) into /id/content
-
-2. The metadata will also be supplied as an XML file attached to the EPrint
-
-3. If there are fulltext files associated, they will be attached to the EPrint
-
-4. The EPrint will be left in the sword user's workarea
-
-All metadata will be converted to EPrints metadata following the rules laid down in the Atom XSLT import plugin.
-This crosswalk is part of your EPrints souce, and can be found in:
-
-    /opt/eprints3/perl_lib/EPrints/Plugin/Import/XSLT/Atom.xsl
-
-By default it will crosswalk the absolute basic Atom metadata, so you may wish to modify this file to fit with your EPrints schema as you see fit.
-
-## DSpace Setup
-
-* dc:dateAvailable should be configured to go to your embargo field
