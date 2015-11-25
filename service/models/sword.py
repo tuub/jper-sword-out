@@ -42,7 +42,7 @@ class RepositoryStatus(dataobj.DataObj, dao.RepositoryStatusDAO):
                 "created_date" : {"coerce" : "utcdatetime"},
 
                 "last_deposit_date" : {"coerce" : "utcdatetime"},
-                "status" : {"coerce" : "unicode"},
+                "status" : {"coerce" : "unicode", "allowed_values" : [u"succeeding", u"failing", u"problem"]},
                 "retries" : {"coerce" : "integer"},
                 "last_tried" : {"coerce" : "utcdatetime"}
             }
@@ -233,9 +233,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
                 "repository" : {"coerce" : "unicode"},
                 "notification" : {"coerce" : "unicode"},
                 "deposit_date" : {"coerce" : "utcdatetime"},
-                "metadata_status" : {"coerce" : "unicode"},
-                "content_status" : {"coerce" : "unicode"},
-                "completed_status" : {"coerce" : "unicode"},
+                "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed"]},
+                "content_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
+                "completed_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
             }
         }
 
