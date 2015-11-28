@@ -51,9 +51,9 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
         :param collection: collection url to deposit to
         :return:
         """
-        self._set_single("sword_repository.username", username, coerce=self._utf8_unicode())
-        self._set_single("sword_repository.password", password, coerce=self._utf8_unicode())
-        self._set_single("sword_repository.collection", collection, coerce=self._utf8_unicode())
+        self._set_single("sword.username", username, coerce=self._utf8_unicode())
+        self._set_single("sword.password", password, coerce=self._utf8_unicode())
+        self._set_single("sword.collection", collection, coerce=self._utf8_unicode())
 
     @property
     def sword_collection(self):
@@ -62,7 +62,7 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
 
         :return: collection url
         """
-        return self._get_single("sword_repository.collection", coerce=self._utf8_unicode())
+        return self._get_single("sword.collection", coerce=self._utf8_unicode())
 
     @property
     def sword_username(self):
@@ -71,7 +71,7 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
 
         :return: username
         """
-        return self._get_single("sword_repository.username", coerce=self._utf8_unicode())
+        return self._get_single("sword.username", coerce=self._utf8_unicode())
 
     @property
     def sword_password(self):
@@ -80,7 +80,7 @@ class Account(dataobj.DataObj, dao.AccountDAO, UserMixin):
 
         :return: password
         """
-        return self._get_single("sword_repository.password", coerce=self._utf8_unicode())
+        return self._get_single("sword.password", coerce=self._utf8_unicode())
 
     @property
     def repository_software(self):

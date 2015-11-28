@@ -97,7 +97,7 @@ class SwordAccountQuery(object):
         return {
             "query" : {
                 "query_string" : {
-                    "query" : "_exists_:sword_repository.collection"
+                    "query" : "_exists_:sword.collection"
                 }
             }
         }
