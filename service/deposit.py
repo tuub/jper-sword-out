@@ -230,7 +230,7 @@ def _cache_content(link, note, acc):
     """
     j = client.JPER(api_key=acc.api_key)
     try:
-        stream, headers = j.get_content(link.get("url"))
+        gen, headers = j.get_content(link.get("url"))
     except client.JPERException as e:
         app.logger.error("Problem while processing notification for SWORD deposit: {x}".format(x=e.message))
         raise e
@@ -242,10 +242,9 @@ def _cache_content(link, note, acc):
     out = tmp.path(local_id, fn, must_exist=False)
 
     with open(out, "wb") as f:
-        block = None
-        while block != "":
-            block = stream.read(8192)
-            f.write(block)
+        for chunk in gen:
+            if chunk:
+                f.write(chunk)
 
     return local_id, out
 

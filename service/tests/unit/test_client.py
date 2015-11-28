@@ -112,15 +112,15 @@ class TestModels(TestCase):
 
         # try the default content url
         url = "http://localhost:5024/notification/12345/content"
-        stream, headers = c.get_content(url)
-        assert hasattr(stream, "read")
-        assert stream.read() == "default content"
+        gen, headers = c.get_content(url)
+        assert hasattr(gen, "next")
+        assert gen.next() == "default content"
 
         # try a specific content url
         url = "http://localhost:5024/notification/12345/content/SimpleZip"
-        stream, headers = c.get_content(url)
-        assert hasattr(stream, "read")
-        assert stream.read() == "simplezip"
+        gen, headers = c.get_content(url)
+        assert hasattr(gen, "next")
+        assert gen.next() == "simplezip"
 
         # check a failed http request
         with self.assertRaises(client.JPERConnectionException):
