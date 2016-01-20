@@ -114,16 +114,17 @@ def to_dc_rioxx(note, entry):
 
     # metadata.license_ref.url -> ali:license_ref AND dc:rights AND atom:rights
     lic = note.license
-    lurl = lic.get("url")
-    if lurl is not None:
-        entry.add_field("dc_rights", lurl)
-        entry.add_field("atom_rights", lurl)
-        attrs = {}
-        if embargo_end is not None:
-            attrs["start_date"] = embargo_end
-        entry.add_field("ali_license_ref", lurl, attrs=attrs)
-    elif lic.get("title") is not None:
-        entry.add_field("dc_rights", lic.get("title"))
+    if lic is not None:
+        lurl = lic.get("url")
+        if lurl is not None:
+            entry.add_field("dc_rights", lurl)
+            entry.add_field("atom_rights", lurl)
+            attrs = {}
+            if embargo_end is not None:
+                attrs["start_date"] = embargo_end
+            entry.add_field("ali_license_ref", lurl, attrs=attrs)
+        elif lic.get("title") is not None:
+            entry.add_field("dc_rights", lic.get("title"))
 
     # metadata.project -> rioxxterms:project AND atom:contributor
     for proj in note.projects:
@@ -149,6 +150,5 @@ def to_dc_rioxx(note, entry):
     for s in note.subjects:
         entry.add_field("dc_subject", s)
 
-    # Now populate some standard atom fields for a useful default for repositories which only understand that
 
 
