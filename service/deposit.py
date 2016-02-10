@@ -33,7 +33,7 @@ def run(fail_on_error=True):
         try:
             process_account(acc)
         except client.JPERException as e:
-            app.logger.error("Problem while processing account for SWORD deposit: {x}".format(x=e.message))
+            app.logger.error(u"Problem while processing account for SWORD deposit: {x}".format(x=e.message))
             if fail_on_error:
                 raise e
 
@@ -47,11 +47,14 @@ def process_account(acc):
 
     :param acc: the account whose notifications to process
     """
+    app.logger.info(u"Processing Account:{x}".format(x=acc.id))
+
     # get the current status of the repository
     status = models.RepositoryStatus.pull(acc.id)
 
     # if no status record is found, this means the repository is new to sword deposit, so we need to create one
     if status is None:
+        app.logger.debug(u"Account:{x} has not previously deposited - creating repository status record".format(x=acc.id))
         status = models.RepositoryStatus()
         status.id = acc.id
         status.status = "succeeding"
@@ -60,11 +63,13 @@ def process_account(acc):
 
     # check to see if we should be continuing with this account (may be failing)
     if status.status == "failing":
+        app.logger.debug(u"Account:{x} is marked as failing - skipping.  You may need to manually reactivate this account".format(x=acc.id))
         return
 
     # check to see if enough time has passed to warrant a re-try (if relevant)
     delay = app.config.get("LONG_CYCLE_RETRY_DELAY")
     if status.status == "problem" and not status.can_retry(delay):
+        app.logger.debug(u"Account:{x} is experiencing problems, and retry delay has not yet elapsed - skipping".format(x=acc.id))
         return
 
     # Query JPER for the notifications for this account
@@ -81,6 +86,7 @@ def process_account(acc):
                 # if the notification is successfully processed, record the new last_deposit_date
                 status.last_deposit_date = note.analysis_date
             except DepositException as e:
+                app.logger.debug(u"Received deposit exception for Notification:{y} on Account:{x} - recording a problem status and skipping remaining actions for this account".format(x=acc.id, y=note.id))
                 # record the failure against the status object
                 limit = app.config.get("LONG_CYCLE_RETRY_LIMIT")
                 status.record_failure(limit)
@@ -89,7 +95,7 @@ def process_account(acc):
     except client.JPERException as e:
         # save the status where we currently got to, so we can pick up again later
         status.save()
-        app.logger.error("Problem while processing account for SWORD deposit: {x}".format(x=e.message))
+        app.logger.error(u"Problem while processing account for SWORD deposit: {x}".format(x=e.message))
         raise e
 
     # if we get to here, all the notifications for this account have been deposited, and we can update the status
@@ -110,6 +116,8 @@ def process_notification(acc, note, since):
     :param note: notification to be deposited
     :param since: earliest date which the current set of requests is made from.
     """
+    app.logger.info(u"Processing Notification:{y} for Account:{x}".format(x=acc.id, y=note.id))
+
     # for type inspection...
     assert isinstance(acc, models.Account)
     assert isinstance(note, jmod.OutgoingNotification)
@@ -123,6 +131,7 @@ def process_notification(acc, note, since):
 
         # was this a successful deposit?  if so, don't re-run
         if dr is not None and dr.was_successful():
+            app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
             return
 
     # work out if there is a content object to be deposited
@@ -154,6 +163,7 @@ def process_notification(acc, note, since):
         # ensure the metadata status is set as we expect it
         dr.metadata_status = "deposited"
     except DepositException as e:
+        app.logger.debug(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
         # save the actual deposit record, ensuring that the metadata_status is set the way we expect
         dr.metadata_status = "failed"
         if app.config.get("STORE_RESPONSE_DATA", False):
@@ -165,6 +175,7 @@ def process_notification(acc, note, since):
     # beyond this point, we are only dealing with content, so if there's no content to deposit we can
     # wrap up and return
     if link is None:
+        app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
         if app.config.get("STORE_RESPONSE_DATA", False):
             dr.save()
         return
@@ -185,6 +196,7 @@ def process_notification(acc, note, since):
             # ensure the content status is set as we expect it
             dr.content_status = "deposited"
         except DepositException as e:
+            app.logger.debug(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
             # save the actual deposit record, ensuring the content_status is set the way we expect
             dr.content_status = "failed"
             if app.config.get("STORE_RESPONSE_DATA", False):
@@ -205,6 +217,8 @@ def process_notification(acc, note, since):
         # ensure the completed status is set as we expect it
         dr.completed_status = "deposited"
     except DepositException as e:
+        app.logger.debug(u"Received complete request exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+
         # save the actual deposit record, ensuring the completed_status is set the way we expect
         dr.completed_status = "failed"
         if app.config.get("STORE_RESPONSE_DATA", False):
@@ -232,7 +246,7 @@ def _cache_content(link, note, acc):
     try:
         gen, headers = j.get_content(link.get("url"))
     except client.JPERException as e:
-        app.logger.error("Problem while processing notification for SWORD deposit: {x}".format(x=e.message))
+        app.logger.error(u"Problem while processing notification for SWORD deposit: {x}".format(x=e.message))
         raise e
 
     local_id = uuid.uuid4().hex
@@ -258,6 +272,8 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     :param complete: True/False; should we tell the repository that the deposit process is complete (do this if there is no binary deposit to follow)
     :return: the deposit receipt from the sword client
     """
+    app.logger.info(u"Depositing metadata for Notification:{y} for Account:{x}".format(x=acc.id, y=note.id))
+
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
@@ -287,12 +303,14 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
         msg = "Metadata deposit failed with status {x}".format(x=receipt.code)
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
+        app.logger.debug(u"Received error document depositing metadata for Notification:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=note.id))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Metadata deposit was successful"
             sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
         deposit_record.metadata_status = "deposited"
+        app.logger.debug(u"Metadata successfully deposited for Notification:{y} for Account:{x}".format(x=acc.id, y=note.id))
 
     # if this wasn't an error document, then we have a legitimate response, but we need the deposit receipt
     # so get it explicitly, and store it
@@ -319,6 +337,8 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
     :param acc: the account we are working as
     :param deposit_record: provenance object for recording actions during this deposit process
     """
+    app.logger.info(u"Depositing Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
+
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
@@ -345,12 +365,14 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
         msg = "Content deposit failed with status {x}".format(x=ur.code)
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        app.logger.debug(u"Received error document depositing Package Format:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=packaging))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Content deposit was successful"
             sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
         deposit_record.content_status = "deposited"
+        app.logger.debug(u"Successfully deposited Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
 
     return
 
@@ -363,6 +385,8 @@ def complete_deposit(receipt, acc, deposit_record):
     :param acc: account we are working as
     :param deposit_record: provenance object for recording actions during this deposit process
     """
+    app.logger.info(u"Sending complete request for Account:{x}".format(x=acc.id))
+
     # EPrints repositories can't handle the "complete" request
     cr = None
     if acc.repository_software not in ["eprints"]:
@@ -387,12 +411,14 @@ def complete_deposit(receipt, acc, deposit_record):
         msg = "Complete request failed with status {x}".format(x=cr.code)
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+        app.logger.debug(u"Received error document for complete request for Account:{x}".format(x=acc.id))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Complete request was successful"
             sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
         deposit_record.completed_status = "deposited"
+        app.logger.debug(u"Successfully sent complete request for Account:{x}".format(x=acc.id))
 
     return
 

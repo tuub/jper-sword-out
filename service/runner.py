@@ -33,6 +33,7 @@ if __name__ == "__main__":
 
     col_counter = 0
     while True:
+        app.logger.info(u"Starting SWORDv2 Runner")
         deposit.run(fail_on_error=True)
 
         print ".",
