@@ -9,6 +9,7 @@ from octopus.modules.jper import models as jmod
 from octopus.modules.store import store
 from service.tests import fixtures
 from octopus.lib import dates, http
+from octopus.modules.swordv2 import client_http
 import time, sword2, urlparse, json, os, zipfile
 from StringIO import StringIO
 from octopus.core import app
@@ -74,6 +75,8 @@ class TestDeposit(ESTestCase):
 
         self.old_iterate = client.JPER.iterate_notifications
 
+        self.old_octopus_http = client_http.OctopusHttpLayer
+
         self.stored_ids = []
 
         self.retry_delay = app.config.get("LONG_CYCLE_RETRY_DELAY")
@@ -89,6 +92,8 @@ class TestDeposit(ESTestCase):
         http.get_stream = self.old_http_get_stream
 
         client.JPER.iterate_notifications = self.old_iterate
+
+        client_http.OctopusHttpLayer = self.old_octopus_http
 
         app.config["LONG_CYCLE_RETRY_DELAY"] = self.retry_delay
         app.config["LONG_CYCLE_RETRY_LIMIT"] = self.retry_limit
@@ -533,3 +538,39 @@ class TestDeposit(ESTestCase):
         assert status.last_deposit_date == "2015-02-02T00:00:00Z"
         assert status.retries == 0
         assert status.last_tried is None
+
+    def test_12_broken_repository(self):
+        client_http.OctopusHttpLayer = fixtures.MockHttpLayer
+
+        # give us an account to process for
+        acc = models.Account()
+        acc.add_sword_credentials("acc1", "pass1", "http://sword/1")
+        acc.add_packaging("http://purl.org/net/sword/package/SimpleZip")
+        acc.save()
+
+        # create a notification
+        source = fixtures.NotificationFactory.outgoing_notification()
+        note = jmod.OutgoingNotification(source)
+
+        # get a since date, doesn't really matter what it is
+        since = dates.now()
+
+        with self.assertRaises(deposit.DepositException):   # because this is what the mock does if it gets called
+            deposit.process_notification(acc, note, since)
+
+    def test_13_malformed_config(self):
+        # give us an account to process for
+        acc = models.Account()
+        acc.add_sword_credentials("acc1", "pass1", "/id/config")
+        acc.add_packaging("http://purl.org/net/sword/package/SimpleZip")
+        acc.save()
+
+        # create a notification
+        source = fixtures.NotificationFactory.outgoing_notification()
+        note = jmod.OutgoingNotification(source)
+
+        # get a since date, doesn't really matter what it is
+        since = dates.now()
+
+        with self.assertRaises(deposit.DepositException):   # because this is what the mock does if it gets called
+            deposit.process_notification(acc, note, since)

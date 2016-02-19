@@ -31,6 +31,8 @@ class TestModels(ESTestCase):
         acc4 = models.Account()
         acc4.save(blocking=True)
 
+        time.sleep(2)
+
         accs = models.Account.with_sword_activated()
         assert len(accs) == 2
         for acc in accs:

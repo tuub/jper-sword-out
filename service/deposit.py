@@ -289,7 +289,13 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     if acc.repository_software in ["eprints"]:
         # because EPrints doesn't allow "complete" requests, we leave everything in_progress for the purposes of consistency
         ip = True
-    receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=ip)
+
+    try:
+        receipt = conn.create(col_iri=acc.sword_collection, metadata_entry=entry, in_progress=ip)
+    except Exception as e:
+        msg = u"Received Error:{a} attempting to create object in repository for Notification:{y} for Account:{x} - raising DepositException".format(a=e.message, y=note.id, x=acc.id)
+        app.logger.debug(msg)
+        raise DepositException(msg)
 
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
     if receipt.dom is not None and app.config.get("STORE_RESPONSE_DATA", False):
@@ -315,7 +321,12 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     # if this wasn't an error document, then we have a legitimate response, but we need the deposit receipt
     # so get it explicitly, and store it
     if receipt.dom is None:
-        receipt = conn.get_deposit_receipt(receipt.edit)
+        try:
+            receipt = conn.get_deposit_receipt(receipt.edit)
+        except Exception as e:
+            msg = u"Received Error:{a} attempting to retrieve deposit receipt in repository for Notification:{y} for Account:{x} - raising DepositException".format(a=e.message, y=note.id, x=acc.id)
+            app.logger.debug(msg)
+            raise DepositException(msg)
         if app.config.get("STORE_RESPONSE_DATA", False):
             content = receipt.to_xml()
             sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
@@ -323,7 +334,12 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     # if this is an eprints repository, also send the XML as a file
     if acc.repository_software in ["eprints"]:
         xmlhandle = StringIO(str(entry))
-        conn.add_file_to_resource(receipt.edit_media, xmlhandle, "sword.xml", "text/xml")
+        try:
+            conn.add_file_to_resource(receipt.edit_media, xmlhandle, "sword.xml", "text/xml")
+        except Exception as e:
+            msg = u"Received Error:{a} attempting to deposit atom entry as file in repository for Notification:{y} for Account:{x} - raising DepositException".format(a=e.message, y=note.id, x=acc.id)
+            app.logger.debug(msg)
+            raise DepositException(msg)
 
     return receipt
 
@@ -347,10 +363,20 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
     # item
     if acc.repository_software in ["eprints"]:
         # this one adds the package as a new file to the item
-        ur = conn.add_file_to_resource(receipt.edit_media, file_handle, "deposit.zip", "application/zip", packaging)
+        try:
+            ur = conn.add_file_to_resource(receipt.edit_media, file_handle, "deposit.zip", "application/zip", packaging)
+        except Exception as e:
+            msg = u"Received Error:{a} attempting to deposit file in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+            app.logger.debug(msg)
+            raise DepositException(msg)
     else:
         # this one would replace all the binary files
-        ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+        try:
+            ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+        except Exception as e:
+            msg = u"Received Error:{a} attempting to deposit file in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+            app.logger.debug(msg)
+            raise DepositException(msg)
 
         # this one would append the package's files to the resource
         # ur = conn.append(payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
@@ -394,7 +420,12 @@ def complete_deposit(receipt, acc, deposit_record):
         conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
 
         # send the complete request to the repository
-        cr = conn.complete_deposit(dr=receipt)
+        try:
+            cr = conn.complete_deposit(dr=receipt)
+        except Exception as e:
+            msg = u"Received Error:{a} attempting to complete deposit in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+            app.logger.debug(msg)
+            raise DepositException(msg)
 
     # storage manager instance
     sm = store.StoreFactory.get()

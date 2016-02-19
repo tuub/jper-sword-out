@@ -16,3 +16,4 @@ you can do
 """
 from service.tests.fixtures.notifications import NotificationFactory
 from service.tests.fixtures.sword import SwordFactory
+from service.tests.fixtures.http_layer import MockHttpLayer
