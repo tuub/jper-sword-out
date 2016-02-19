@@ -68,7 +68,7 @@ Remote EPrints Configuration
 
 COL = "http://eprints2.cottagelabs.com/id/contents"
 ERR_COL = "http://eprints2.cottagelabs.com/id/thisdoesntexist"
-UN = "admin"
+UN = "huddersfield"
 PW = "password"
 REPO_SOFTWARE = "eprints"
 
@@ -418,7 +418,9 @@ class TestDeposit(ESTestCase):
         # now run the full stack
         deposit.run(fail_on_error=True)
 
-        time.sleep(2)
+        # for some reason sometimes it takes a while for the index changes to be live, so whacking this up to
+        # 5 seconds
+        time.sleep(5)
 
         # now check over everything and make sure what we expected to happen happened
 
