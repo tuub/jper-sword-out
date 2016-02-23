@@ -5,6 +5,16 @@ It will start and remain running until it is shut-down externally, and will exec
 repeatedly.
 """
 from octopus.core import app, initialise, add_configuration
+from logging import Formatter
+from logging.handlers import RotatingFileHandler
+
+file_handler = RotatingFileHandler('jperswordoutlog', maxBytes=1000000000, backupCount=5)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(Formatter(
+    '%(asctime)s %(levelname)s: %(message)s '
+    '[in %(pathname)s:%(lineno)d %(module)s %(funcName)s]'
+))
+app.logger.addHandler(file_handler)
 
 if __name__ == "__main__":
     import argparse
