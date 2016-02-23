@@ -5,6 +5,7 @@ It will start and remain running until it is shut-down externally, and will exec
 repeatedly.
 """
 from octopus.core import app, initialise, add_configuration
+import logging
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 
