@@ -72,6 +72,15 @@ class NotificationFactory(object):
         return deepcopy(OUTGOING)
 
     @classmethod
+    def special_character_notification(cls):
+        """
+        Example special character notification
+
+        :return:
+        """
+        return deepcopy(SPECIAL_CHARACTER)
+
+    @classmethod
     def example_package_path(cls):
         """
         Path to binary file which can be used for testing
@@ -294,3 +303,63 @@ OUTGOING = {
     }
 }
 """example outgoing notification"""
+
+SPECIAL_CHARACTER = {
+        "embargo": {
+                "duration": 0
+        },
+        "links": [{
+                "url": "https://pubrouter.jisc.ac.uk/api/v1/notification/4e8f4bef41254539a28e072c1e85d9a2/proxy/d0ec9aa8125f4e81aede7dfeaa5bc9e2",
+                "type": "fulltext",
+                "format": "text/html"
+        }],
+        "analysis_date": "2016-02-23T22:41:47Z",
+        "event": "acceptance",
+        "created_date": "2016-02-23T22:35:46Z",
+        "id": "4e8f4bef41254539a28e072c1e85d9a2",
+        "metadata": {
+                "language": "eng",
+                "title": "Relationship between maxillary central incisor proportions and\u00a0facial proportions.".decode("unicode_escape"),
+                "author": [{
+                        "affiliation": "Senior Specialty Registrar, Orthodontics, Guy's Hospital, London, UK.",
+                        "identifier": [{
+                                "type": "ORCID",
+                                "id": "0000-0003-2731-183X"
+                        }],
+                        "name": "Radia S"
+                },
+                {
+                        "affiliation": "Professor, Biostatistics, University of Bristol, Bristol, UK.",
+                        "name": "Sherriff M"
+                },
+                {
+                        "affiliation": "Professor and Head, Department of Orthodontics, King's College University, London, UK.",
+                        "name": "McDonald F"
+                },
+                {
+                        "affiliation": "Consultant Orthodontist, Kingston and St George's Hospitals and Medical School, London, UK. Electronic address: farhad.naini@yahoo.co.uk.",
+                        "name": "Naini FB"
+                }],
+                "source": {
+                        "identifier": [{
+                                "type": "issn",
+                                "id": "0022-3913"
+                        },
+                        {
+                                "type": "eissn",
+                                "id": "1097-6841"
+                        }],
+                        "name": "The Journal of prosthetic dentistry"
+                },
+                "publication_date": "2016-01-12T00:00:00Z",
+                "identifier": [{
+                        "type": "10.1016/j.prosdent.2015.10.019",
+                        "id": "doi"
+                },
+                {
+                        "type": "26794701",
+                        "id": "pmid"
+                }],
+                "type": "Journal Article"
+        }
+}

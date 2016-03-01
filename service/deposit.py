@@ -61,7 +61,7 @@ def process_account(acc):
         status.status = "succeeding"
         status.last_deposit_date = app.config.get("DEFAULT_SINCE_DATE")
         status.save()
-    app.logger.info(u"Status:{x}".format(x=status))
+    app.logger.info(u"Status:{x}".format(x=status.status))
     # check to see if we should be continuing with this account (may be failing)
     if status.status == "failing":
         app.logger.debug(u"Account:{x} is marked as failing - skipping.  You may need to manually reactivate this account".format(x=acc.id))
@@ -301,7 +301,7 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
         msg = u"Received Error:{a} attempting to create object in repository for Notification:{y} for Account:{x} - raising DepositException".format(a=e.message, y=note.id, x=acc.id)
         app.logger.error(msg)
         raise DepositException(msg)
-
+    
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
     if receipt.dom is not None and app.config.get("STORE_RESPONSE_DATA", False):
         content = receipt.to_xml()
