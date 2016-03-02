@@ -365,33 +365,6 @@ class TestDeposit(ESTestCase):
         acc1ld = dates.format(dates.before_now(1000))
         acc2ld = dates.format(dates.before_now(800))
 
-    def test_08_metadata_deposit_success_special_character(self):
-        note = jper.OutgoingNotification(fixtures.NotificationFactory.special_character_notification())
-
-        acc = models.Account()
-        acc.add_sword_credentials(UN, PW, COL)
-        acc.repository_software = REPO_SOFTWARE
-
-        deposit_record = models.DepositRecord()
-        deposit_record.id = deposit_record.makeid()
-        self.stored.append(deposit_record.id)
-
-        receipt = deposit.metadata_deposit(note, acc, deposit_record, complete=True)
-
-        assert receipt is not None
-        # check the properties of the deposit_record
-        assert deposit_record.metadata_status == "deposited"
-
-        # check that a copy has been kept in the local store
-        sm = store.StoreFactory.get()
-        assert sm.exists(deposit_record.id)
-        files = sm.list(deposit_record.id)
-        assert len(files) == 2
-        assert "metadata_deposit_response.xml" in files
-        assert "metadata_deposit.txt" in files
-        f = sm.get(deposit_record.id, "metadata_deposit_response.xml")
-        xml = etree.parse(f)
-        assert xml is not None
         # now make some notifications to be returned over http
         # defining this mock here for convenience during development
         def mock_get_list_intercept(url, *args, **kwargs):
@@ -495,3 +468,31 @@ class TestDeposit(ESTestCase):
             assert "content_deposit.txt" in files
             assert "complete_deposit.txt" in files
             assert "metadata_deposit_response.xml" in files
+
+    def test_08_metadata_deposit_success_special_character(self):
+        note = jper.OutgoingNotification(fixtures.NotificationFactory.special_character_notification())
+
+        acc = models.Account()
+        acc.add_sword_credentials(UN, PW, COL)
+        acc.repository_software = REPO_SOFTWARE
+
+        deposit_record = models.DepositRecord()
+        deposit_record.id = deposit_record.makeid()
+        self.stored.append(deposit_record.id)
+
+        receipt = deposit.metadata_deposit(note, acc, deposit_record, complete=True)
+
+        assert receipt is not None
+        # check the properties of the deposit_record
+        assert deposit_record.metadata_status == "deposited"
+
+        # check that a copy has been kept in the local store
+        sm = store.StoreFactory.get()
+        assert sm.exists(deposit_record.id)
+        files = sm.list(deposit_record.id)
+        assert len(files) == 2
+        assert "metadata_deposit_response.xml" in files
+        assert "metadata_deposit.txt" in files
+        f = sm.get(deposit_record.id, "metadata_deposit_response.xml")
+        xml = etree.parse(f)
+        assert xml is not None
