@@ -207,7 +207,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
             "last_updated" : "<date this record was last updated>",
             "created_date" : "<date this record was created>",
 
-            "repository" : "<account id of the repository>",
+            "repo" : "<account id of the repository>",
+            # "repository" : "<account id of the repository>",
+            # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
             "notification" : "<notification id that the record is about>",
             "deposit_date" : "<date of attempted deposit>",
             "metadata_status" : "<deposited|failed>",
@@ -230,7 +232,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
                 "id" : {"coerce" : "unicode"},
                 "last_updated" : {"coerce" : "utcdatetime"},
                 "created_date" : {"coerce" : "utcdatetime"},
-                "repository" : {"coerce" : "unicode"},
+                "repo" : {"coerce" : "unicode"},
+                # "repository" : {"coerce" : "unicode"},
+                # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
                 "notification" : {"coerce" : "unicode"},
                 "deposit_date" : {"coerce" : "utcdatetime"},
                 "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed"]},
@@ -249,7 +253,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
 
         :return: account id
         """
-        return self._get_single("repository", coerce=dataobj.to_unicode())
+        return self._get_single("repo", coerce=dataobj.to_unicode())
+        # return self._get_single("repository", coerce=dataobj.to_unicode())
+        # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
 
     @repository.setter
     def repository(self, val):
@@ -259,7 +265,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         :param val: account id
         :return:
         """
-        self._set_single("repository", val, coerce=dataobj.to_unicode())
+        self._set_single("repo", val, coerce=dataobj.to_unicode())
+        # self._set_single("repository", val, coerce=dataobj.to_unicode())
+        # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
 
     @property
     def notification(self):
