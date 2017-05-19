@@ -158,76 +158,129 @@ def process_notification(acc, note, since):
         dr.content_status = "none"
         dr.completed_status = "none"
 
-    # make the metadata deposit, determining whether to immediately complete the deposit if there is no link
-    # for content
-    try:
-        receipt = metadata_deposit(note, acc, dr, complete=link is None)
-        # ensure the metadata status is set as we expect it
-        dr.metadata_status = "deposited"
-    except DepositException as e:
-        app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
-        # save the actual deposit record, ensuring that the metadata_status is set the way we expect
-        dr.metadata_status = "failed"
-        if app.config.get("STORE_RESPONSE_DATA", False):
-            dr.save()
-
-        # kick the exception upstairs for continued handling
-        raise e
-
-    # beyond this point, we are only dealing with content, so if there's no content to deposit we can
-    # wrap up and return
-    if link is None:
-        app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
-        if app.config.get("STORE_RESPONSE_DATA", False):
-            dr.save()
-        return
-
-    # if we get to here, we have to deal with the content deposit
-
-    # first, get a copy of the file from the API into the local tmp store
-    local_id, path = _cache_content(link, note, acc)
-
-    # make a copy of the tmp store for removing the content later
-    tmp = store.StoreFactory.tmp()
-
-    # now we can do the deposit from the locally stored file (which we need because we're going to use seek() on it
-    # which we can't do with the http stream)
-    with open(path, "rb") as f:
-        try:
-            package_deposit(receipt, f, packaging, acc, dr)
-            # ensure the content status is set as we expect it
-            dr.content_status = "deposited"
-        except DepositException as e:
-            app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
-            # save the actual deposit record, ensuring the content_status is set the way we expect
-            dr.content_status = "failed"
+    #
+    # 2017-05-19 TD : major insert of different repository cases: OPUS4, Pubman(ESciDoc), DSpace, ???, ...
+    #
+    if "opus4" in str(packaging).lower() or "escidoc" in str(packaging).lower() or "dspace" in str(packaging).lower():
+        #
+        # this should never happen, but just in case, if there's no content to deposit we can 
+        # wrap up and return
+        if link is None:
+            app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
+            return
 
-            # delete the locally stored content
-            tmp.delete(local_id)
+        # first, get a copy of the file from the API into the local tmp store
+        local_id, path = _cache_content(link, note, acc)
+
+        # make a copy of the tmp store for removing the content later
+        tmp = store.StoreFactory.tmp()
+
+        # adjust some special case(s) for the packaging identification string.
+        # Some repositories are really picky about this...
+        if "opus4" in str(packaging).lower():
+            packaging = None
+        elif "escidoc" in str(packaging).lower():
+            packaging = "http://purl.org/escidoc/metadata/schemas/0.1/publication"
+
+        # now we can do the deposit from the locally stored file (which we need because we're going to use 
+        # seek() on it which we can't do with the http stream)
+        with open(path, "rb") as f:
+            try:
+                deepgreen_deposit(packaging, f, acc, dr)
+                # ensure the content status is set as we expect it
+                dr.metadata_status = dr.content_status = dr.completed_status = "deposited"
+            except DepositException as e:
+                app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+                # save the actual deposit record, ensuring the content_status is set the way we expect
+                dr.metadata_status = dr.content_status = "failed"
+                if app.config.get("STORE_RESPONSE_DATA", False):
+                    dr.save()
+
+                # delete the locally stored content
+                tmp.delete(local_id)
+
+                # kick the exception upstairs for continued handling
+                raise e
+
+        # now we can get rid of the locally stored content
+        tmp.delete(local_id)
+
+    else:
+        # make the metadata deposit, determining whether to immediately complete the deposit if there is
+        # no link for content
+        try:
+            receipt = metadata_deposit(note, acc, dr, complete=link is None)
+            # ensure the metadata status is set as we expect it
+            dr.metadata_status = "deposited"
+        except DepositException as e:
+            app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+            # save the actual deposit record, ensuring that the metadata_status is set the way we expect
+            dr.metadata_status = "failed"
+            if app.config.get("STORE_RESPONSE_DATA", False):
+                dr.save()
 
             # kick the exception upstairs for continued handling
             raise e
 
-    # now we can get rid of the locally stored content
-    tmp.delete(local_id)
+        # beyond this point, we are only dealing with content, so if there's no content to deposit we can
+        # wrap up and return
+        if link is None:
+            app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
+            if app.config.get("STORE_RESPONSE_DATA", False):
+                dr.save()
+            return
 
-    # finally, complete the request
-    try:
-        complete_deposit(receipt, acc, dr)
-        # ensure the completed status is set as we expect it
-        dr.completed_status = "deposited"
-    except DepositException as e:
-        app.logger.error(u"Received complete request exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+        # if we get to here, we have to deal with the content deposit
 
-        # save the actual deposit record, ensuring the completed_status is set the way we expect
-        dr.completed_status = "failed"
-        if app.config.get("STORE_RESPONSE_DATA", False):
-            dr.save()
+        # first, get a copy of the file from the API into the local tmp store
+        local_id, path = _cache_content(link, note, acc)
 
-        # kick the exception upstairs for continued handling
-        raise e
+        # make a copy of the tmp store for removing the content later
+        tmp = store.StoreFactory.tmp()
+
+        # now we can do the deposit from the locally stored file (which we need because we're going to use seek() on it
+        # which we can't do with the http stream)
+        with open(path, "rb") as f:
+            try:
+                package_deposit(receipt, f, packaging, acc, dr)
+                # ensure the content status is set as we expect it
+                dr.content_status = "deposited"
+            except DepositException as e:
+                app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+                # save the actual deposit record, ensuring the content_status is set the way we expect
+                dr.content_status = "failed"
+                if app.config.get("STORE_RESPONSE_DATA", False):
+                    dr.save()
+
+                # delete the locally stored content
+                tmp.delete(local_id)
+
+                # kick the exception upstairs for continued handling
+                raise e
+
+        # now we can get rid of the locally stored content
+        tmp.delete(local_id)
+
+        # finally, complete the request
+        try:
+            complete_deposit(receipt, acc, dr)
+            # ensure the completed status is set as we expect it
+            dr.completed_status = "deposited"
+        except DepositException as e:
+            app.logger.error(u"Received complete request exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+
+            # save the actual deposit record, ensuring the completed_status is set the way we expect
+            dr.completed_status = "failed"
+            if app.config.get("STORE_RESPONSE_DATA", False):
+                dr.save()
+
+            # kick the exception upstairs for continued handling
+            raise e
+    #
+    # 2017-05-19 TD : End of all repository cases here ...
+    #
 
     # that's it, we've successfully deposited this notification to the repository along with all its content
     if app.config.get("STORE_RESPONSE_DATA", False):
@@ -266,6 +319,71 @@ def _cache_content(link, note, acc):
 
     app.logger.info("Leaving _cache_content")
     return local_id, out
+
+#
+# 2017-05-19 TD : For the time being, DeepGreen wants to deposit all in once.
+#
+def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
+    """
+    Deposit the binary package content to the target repository
+
+    :param packaging: the package format identifier
+    :param file_handle: the file handle on the binary content to deliver
+    :param acc: the account we are working as
+    :param deposit_record: provenance object for recording actions during this deposit process
+    """
+    app.logger.info(u"Depositing Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
+
+    # create a connection object
+    conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
+
+    ##if acc.repository_software in ["eprints"]:
+    ##    # this one adds the package as a new file to the item
+    ##    try:
+    ##        ur = conn.add_file_to_resource(receipt.edit_media, file_handle, "deposit.zip", "application/zip", packaging)
+    ##    except Exception as e:
+    ##        msg = u"Received Error:{a} attempting to deposit file in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+    ##        app.logger.error(msg)
+    ##        raise DepositException(msg)
+    ##else:
+    ##    # this one would replace all the binary files
+    ##    try:
+    ##        ur = conn.update_files_for_resource(file_handle, "deposit.zip", mimetype="application/zip", packaging=packaging, dr=receipt)
+    ##    except Exception as e:
+    ##        msg = u"Received Error:{a} attempting to deposit file in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+    ##        app.logger.error(msg)
+    ##        raise DepositException(msg)
+
+    # this one would create an collection item as the package's file(s)
+    try:
+        ur = conn.create(col_iri=acc.sword_collection, payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging)
+    except Exception as e:
+        msg = u"Received Error:{a} attempting to deposit file in repository for Account:{x} - raising DepositException".format(a=e.message, x=acc.id)
+        app.logger.error(msg)
+        raise DepositException(msg)
+
+    # storage manager instance
+    sm = store.StoreFactory.get()
+
+    # find out if this was an error document, and throw an error if so
+    # (recording deposited/failed on the deposit_record along the way)
+    if isinstance(ur, sword2.Error_Document):
+        deposit_record.content_status = "failed"
+        msg = "Content deposit failed with status {x}".format(x=ur.code)
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        app.logger.debug(u"Received error document depositing Package Format:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=packaging))
+        raise DepositException(msg)
+    else:
+        if app.config.get("STORE_RESPONSE_DATA", False):
+            msg = "Content deposit was successful"
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+        deposit_record.content_status = "deposited"
+        app.logger.debug(u"Successfully deposited Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
+
+    app.logger.info("Package deposit")
+    return
+
 
 def metadata_deposit(note, acc, deposit_record, complete=False):
     """
