@@ -332,7 +332,7 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
     :param acc: the account we are working as
     :param deposit_record: provenance object for recording actions during this deposit process
     """
-    app.logger.info(u"Depositing Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
+    app.logger.info(u"Depositing DeepGreen Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
 
     # create a connection object
     conn = sword2.Connection(user_name=acc.sword_username, user_pass=acc.sword_password, error_response_raises_exceptions=False, http_impl=client_http.OctopusHttpLayer())
@@ -381,7 +381,7 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
         deposit_record.content_status = "deposited"
         app.logger.debug(u"Successfully deposited Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
 
-    app.logger.info("Package deposit")
+    app.logger.info("DeepGreen Package deposit")
     return
 
 
