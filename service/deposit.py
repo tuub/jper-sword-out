@@ -354,6 +354,7 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
     ##        app.logger.error(msg)
     ##        raise DepositException(msg)
 
+    #
     # this one would create an collection item as the package's file(s)
     try:
         ur = conn.create(col_iri=acc.sword_collection, payload=file_handle, filename="deposit.zip", mimetype="application/zip", packaging=packaging)
