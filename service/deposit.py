@@ -85,7 +85,13 @@ def process_account(acc):
             try:
                 process_notification(acc, note, since)
                 # if the notification is successfully processed, record the new last_deposit_date
-                status.last_deposit_date = note.analysis_date
+                #status.last_deposit_date = note.analysis_date
+                # 2018-03-06 TD : 'note.analysis_date' seems to produce nasty instabilities
+                #                 and, most importantly, missed notifications.
+                #                 Here, we try 'note.created_date' instead.  Might cause
+                #                 a bit of douple working, but hey, it will be checked
+                #                 in 'process_notification(...)' anyway.
+                status.last_deposit_date = note.created_date
             except DepositException as e:
                 app.logger.error(u"Received deposit exception for Notification:{y} on Account:{x} - recording a problem status and skipping remaining actions for this account".format(x=acc.id, y=note.id))
                 # record the failure against the status object
