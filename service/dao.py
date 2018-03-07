@@ -54,7 +54,11 @@ class DepositRecordQuery(object):
             "query" : {
                 "bool" : {
                     "must" : [
-                        {"term" : {"repository.exact" : self.repository_id}},
+                        # {"term" : {"repository.exact" : self.repository_id}},
+                        # 2018-03-07 TD : as of fix 2016-08-26 in models/sword.py
+                        #                 this has to match 'repo.exact' instead!
+                        #                 What a bug, good grief!
+                        {"term" : {"repo.exact" : self.repository_id}},
                         {"term" : {"notification.exact" : self.notification_id}}
                     ]
                 }
