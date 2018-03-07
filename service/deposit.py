@@ -138,13 +138,13 @@ def process_notification(acc, note, since):
     ## if note.created_date == since:
     ## 2018-03-07 TD : completely taking out the if-clause; 
     ##                 therefore, testing every call for possible doubles!
-        # this gets the most recent deposit record for this id pair
-        dr = models.DepositRecord.pull_by_ids(note.id, acc.id)
+    # this gets the most recent deposit record for this id pair
+    dr = models.DepositRecord.pull_by_ids(note.id, acc.id)
 
-        # was this a successful deposit?  if so, don't re-run
-        if dr is not None and dr.was_successful():
-            app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
-            return
+    # was this a successful deposit?  if so, don't re-run
+    if dr is not None and dr.was_successful():
+        app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
+        return
 
     # work out if there is a content object to be deposited
     # which means asking the note if there's a content link with a package format supported
