@@ -133,7 +133,9 @@ def process_notification(acc, note, since):
     # first thing is to check the note for proximity to the since date, and check whether we did them already
     # this will avoid situations where the granularity of the since date and the last_deposit_date are too large
     # and there are some processed and some unprocessed notifications all with the same timestamp
-    if note.analysis_date == since:
+    #if note.analysis_date == since:
+    # 2018-03-07 TD : this is to match the change in 'process_account(...)' (the caller)
+    if note.created_date == since:
         # this gets the most recent deposit record for this id pair
         dr = models.DepositRecord.pull_by_ids(note.id, acc.id)
 
