@@ -83,7 +83,11 @@ def process_account(acc):
     try:
         for note in j.iterate_notifications(since, repository_id=acc.id):
             try:
-                process_notification(acc, note, since)
+                # 2018-03-08 TD : introducing a return value 'deposit_done' ....
+                deposit_done = False
+                #                 ... and just below, an if-clause triggering on that.
+                ##process_notification(acc, note, since)
+                deposit_done = process_notification(acc, note, since)
                 # if the notification is successfully processed, record the new last_deposit_date
                 #status.last_deposit_date = note.analysis_date
                 # 2018-03-06 TD : 'note.analysis_date' seems to produce nasty instabilities
@@ -91,7 +95,9 @@ def process_account(acc):
                 #                 Here, we try 'note.created_date' instead.  Might cause
                 #                 a bit of douple working, but hey, it will be checked
                 #                 in 'process_notification(...)' anyway.
-                status.last_deposit_date = note.created_date
+                ##status.last_deposit_date = note.created_date
+                if deposit_done is True: 
+                    status.last_deposit_date = note.created_date
             except DepositException as e:
                 app.logger.error(u"Received deposit exception for Notification:{y} on Account:{x} - recording a problem status and skipping remaining actions for this account".format(x=acc.id, y=note.id))
                 # record the failure against the status object
@@ -123,12 +129,16 @@ def process_notification(acc, note, since):
     :param acc: user account of repository
     :param note: notification to be deposited
     :param since: earliest date which the current set of requests is made from.
+    :return: flag (boolean) to indicated a successful deposit
     """
     app.logger.info(u"Processing Notification:{y} for Account:{x}".format(x=acc.id, y=note.id))
 
     # for type inspection...
     assert isinstance(acc, models.Account)
     assert isinstance(note, jmod.OutgoingNotification)
+
+    # 2018-03-08 TD : new return flag; initialised to 'False'
+    deposit_done = False
 
     # first thing is to check the note for proximity to the since date, and check whether we did them already
     # this will avoid situations where the granularity of the since date and the last_deposit_date are too large
@@ -144,7 +154,9 @@ def process_notification(acc, note, since):
     # was this a successful deposit?  if so, don't re-run
     if dr is not None and dr.was_successful():
         app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
-        return
+        # 2018-03-08 TD : return the new flag with 'False'
+        #return
+        return deposit_done
 
     # work out if there is a content object to be deposited
     # which means asking the note if there's a content link with a package format supported
@@ -163,7 +175,8 @@ def process_notification(acc, note, since):
     dr.deposit_date = dates.now()
     dr.id = dr.makeid()
 
-    # pre-populate the content and completed bits of the deposit record, if there is no package to be deposited
+    # pre-populate the content and completed bits of the deposit record, 
+    # if there is no package to be deposited
     if link is None:
         dr.content_status = "none"
         dr.completed_status = "none"
@@ -180,7 +193,9 @@ def process_notification(acc, note, since):
             app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
-            return
+            # 2018-03-08 TD : return with the new flag (currently 'False' up to here, hopefully!)
+            #return
+            return deposit_done
 
         # first, get a copy of the file from the API into the local tmp store
         local_id, path = _cache_content(link, note, acc)
@@ -195,16 +210,20 @@ def process_notification(acc, note, since):
         elif "escidoc" in str(packaging).lower():
             packaging = "http://purl.org/escidoc/metadata/schemas/0.1/publication"
 
-        # now we can do the deposit from the locally stored file (which we need because we're going to use 
-        # seek() on it which we can't do with the http stream)
+        # now we can do the deposit from the locally stored file 
+        # (which we need because we're going to use seek() on it 
+        #                  which we can't do with the http stream)
         with open(path, "rb") as f:
             try:
                 deepgreen_deposit(packaging, f, acc, dr)
                 # ensure the content status is set as we expect it
                 dr.metadata_status = dr.content_status = dr.completed_status = "deposited"
+                # 2018-03-08 TD : And we had a lift off...
+                deposit_done = True
             except DepositException as e:
                 app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
-                # save the actual deposit record, ensuring the content_status is set the way we expect
+                # save the actual deposit record, ensuring the content_status is set the way 
+                # we expect
                 dr.metadata_status = dr.content_status = "failed"
                 if app.config.get("STORE_RESPONSE_DATA", False):
                     dr.save()
@@ -219,15 +238,18 @@ def process_notification(acc, note, since):
         tmp.delete(local_id)
 
     else:
-        # make the metadata deposit, determining whether to immediately complete the deposit if there is
-        # no link for content
+        # make the metadata deposit, determining whether to immediately
+        # complete the deposit if there is no link for content
         try:
             receipt = metadata_deposit(note, acc, dr, complete=link is None)
             # ensure the metadata status is set as we expect it
             dr.metadata_status = "deposited"
+            # 2018-03-08 TD : depositing metadata counts as well!
+            deposit_done = True
         except DepositException as e:
             app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
-            # save the actual deposit record, ensuring that the metadata_status is set the way we expect
+            # save the actual deposit record, ensuring that the metadata_status is set 
+            # the way we expect
             dr.metadata_status = "failed"
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
@@ -235,13 +257,15 @@ def process_notification(acc, note, since):
             # kick the exception upstairs for continued handling
             raise e
 
-        # beyond this point, we are only dealing with content, so if there's no content to deposit we can
-        # wrap up and return
+        # beyond this point, we are only dealing with content, so if there's no content
+        # to deposit we can wrap up and return
         if link is None:
             app.logger.debug(u"No content files to deposit for Notification:{y} on Account:{x}".format(x=acc.id, y=note.id))
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
-            return
+            # 2018-03-08 TD : return with flag
+            #return
+            return deposit_done
 
         # if we get to here, we have to deal with the content deposit
 
@@ -258,6 +282,8 @@ def process_notification(acc, note, since):
                 package_deposit(receipt, f, packaging, acc, dr)
                 # ensure the content status is set as we expect it
                 dr.content_status = "deposited"
+                # 2018-03-08 TD : ... and a successful deposit, again!
+                deposit_done = True
             except DepositException as e:
                 app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
                 # save the actual deposit record, ensuring the content_status is set the way we expect
@@ -279,6 +305,8 @@ def process_notification(acc, note, since):
             complete_deposit(receipt, acc, dr)
             # ensure the completed status is set as we expect it
             dr.completed_status = "deposited"
+            # 2018-03-08 TD : set the return flag to 'True'
+            deposit_done = True
         except DepositException as e:
             app.logger.error(u"Received complete request exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
 
@@ -297,7 +325,9 @@ def process_notification(acc, note, since):
     if app.config.get("STORE_RESPONSE_DATA", False):
         dr.save()
     app.logger.info("Leaving processing notification")
-    return
+    # 2018-03-08 TD : return with (new) flag
+    #return
+    return deposit_done
 
 def _cache_content(link, note, acc):
     """
