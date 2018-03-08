@@ -97,7 +97,7 @@ def process_account(acc):
                 #                 in 'process_notification(...)' anyway.
                 ##status.last_deposit_date = note.created_date
                 if deposit_done is True: 
-                    status.last_deposit_date = note.created_date
+                    status.last_deposit_date = note.data["created_date"]
             except DepositException as e:
                 app.logger.error(u"Received deposit exception for Notification:{y} on Account:{x} - recording a problem status and skipping remaining actions for this account".format(x=acc.id, y=note.id))
                 # record the failure against the status object
@@ -145,7 +145,7 @@ def process_notification(acc, note, since):
     # and there are some processed and some unprocessed notifications all with the same timestamp
     #if note.analysis_date == since:
     # 2018-03-07 TD : this is to match the change in 'process_account(...)' (the caller)
-    ## if note.created_date == since:
+    ## if note.data["created_date"] == since:
     ## 2018-03-07 TD : completely taking out the if-clause; 
     ##                 therefore, testing every call for possible doubles!
     # this gets the most recent deposit record for this id pair
