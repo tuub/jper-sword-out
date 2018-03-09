@@ -1,5 +1,6 @@
 """
-Main workflow engine which carries out the mediation between JPER and the SWORD-enabled repositories
+Main workflow engine which carries out the mediation between JPER and the SWORD-enabled 
+repositories
 """
 import sword2, uuid
 from service import xwalk, models
@@ -19,8 +20,8 @@ class DepositException(Exception):
 
 def run(fail_on_error=True):
     """
-    Execute a single pass on all the accounts that have sword activated and process all of their
-    notifications since the last time their account was synchronised, until now
+    Execute a single pass on all the accounts that have sword activated and process all
+    of their notifications since the last time their account was synchronised, until now
 
     :param fail_on_error: cease execution if an exception is raised
     """
@@ -40,11 +41,13 @@ def run(fail_on_error=True):
 
 def process_account(acc):
     """
-    Retrieve the notifications in JPER associated with this account and relay them on to their sword-enabled repository
+    Retrieve the notifications in JPER associated with this account and relay them on 
+    to their sword-enabled repository
 
     If the account is in status "failing", it will be skipped.
 
-    If the account is in status "problem", and the retry delay has elapsed, it will be re-tried, otherwise it will be skipped
+    If the account is in status "problem", and the retry delay has elapsed, it will 
+    be re-tried, otherwise it will be skipped
 
     :param acc: the account whose notifications to process
     """
@@ -53,7 +56,8 @@ def process_account(acc):
     # get the current status of the repository
     status = models.RepositoryStatus.pull(acc.id)
 
-    # if no status record is found, this means the repository is new to sword deposit, so we need to create one
+    # if no status record is found, this means the repository is new to 
+    # sword deposit, so we need to create one
     if status is None:
         app.logger.debug(u"Account:{x} has not previously deposited - creating repository status record".format(x=acc.id))
         status = models.RepositoryStatus()
@@ -111,8 +115,8 @@ def process_account(acc):
         app.logger.error(u"Problem while processing account for SWORD deposit: {x}".format(x=e.message))
         raise e
 
-    # if we get to here, all the notifications for this account have been deposited, and we can update the status
-    # and finish up
+    # if we get to here, all the notifications for this account have been deposited, 
+    # and we can update the status and finish up
     status.save()
     app.logger.info("Leaving processing account")
     return
@@ -120,11 +124,13 @@ def process_account(acc):
 
 def process_notification(acc, note, since):
     """
-    For the given account and notification, deliver the notification to the sword-enabled repository.
+    For the given account and notification, deliver the notification to 
+    the sword-enabled repository.
 
-    The since date is required to check for duplication of notifications, this will avoid situations where the
-    granularity of the since date and the last_deposit_date are too large and there are some processed and some unprocessed
-    notifications all with the same timestamp
+    The since date is required to check for duplication of notifications, 
+    this will avoid situations where the granularity of the since date and 
+    the last_deposit_date are too large and there are some processed and 
+    some unprocessed notifications all with the same timestamp
 
     :param acc: user account of repository
     :param note: notification to be deposited
@@ -140,9 +146,10 @@ def process_notification(acc, note, since):
     # 2018-03-08 TD : new return flag; initialised to 'False'
     deposit_done = False
 
-    # first thing is to check the note for proximity to the since date, and check whether we did them already
-    # this will avoid situations where the granularity of the since date and the last_deposit_date are too large
-    # and there are some processed and some unprocessed notifications all with the same timestamp
+    # first thing is to check the note for proximity to the since date, and check 
+    # whether we did them already this will avoid situations where the granularity 
+    # of the since date and the last_deposit_date are too large and there are some 
+    # processed and some unprocessed notifications all with the same timestamp
     #if note.analysis_date == since:
     # 2018-03-07 TD : this is to match the change in 'process_account(...)' (the caller)
     ## if note.data["created_date"] == since:

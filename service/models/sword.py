@@ -269,6 +269,30 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         # self._set_single("repository", val, coerce=dataobj.to_unicode())
         # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
 
+    # 2018-03-08 TD : convenience setter/getter routines
+    @property
+    def repo(self):
+        """
+        The repository account id this deposit was to
+
+        :return: account id
+        """
+        return self._get_single("repo", coerce=dataobj.to_unicode())
+        # return self._get_single("repository", coerce=dataobj.to_unicode())
+        # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
+
+    @repo.setter
+    def repo(self, val):
+        """
+        Set the repository account id
+
+        :param val: account id
+        :return:
+        """
+        self._set_single("repo", val, coerce=dataobj.to_unicode())
+        # self._set_single("repository", val, coerce=dataobj.to_unicode())
+        # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
+
     @property
     def notification(self):
         """
@@ -277,6 +301,7 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         :return: notification id
         """
         return self._get_single("notification", coerce=dataobj.to_unicode())
+    # 2018-03-08 TD : end of convenience routines
 
     @notification.setter
     def notification(self, val):
