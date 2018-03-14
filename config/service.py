@@ -94,6 +94,9 @@ LONG_CYCLE_RETRY_LIMIT = 24
 ###############################################
 ## Other app-specific settings
 
+DEFAULT_SINCE_DELTA_DAYS = 100
+"""Number to substract from 'last_deposit_date' (safety margin) to get the date from which the first request against the JPER API will be made, in days"""
+
 DEFAULT_SINCE_DATE = "1970-01-01T00:00:00Z"
 """The date from which the first request against the JPER API will be made when listing a repository's notifications"""
 
