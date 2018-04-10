@@ -39,13 +39,15 @@ if __name__ == "__main__":
 
     initialise()
 
-    from service import deposit
+    ## from service import deposit
+    import service.deposit
     import time, sys
 
     col_counter = 0
     while True:
         app.logger.info(u"Starting SWORDv2 Runner")
-        deposit.run(fail_on_error=True)
+        ## deposit.run(fail_on_error=True)
+        run(fail_on_error=True)
 
         print ".",
         sys.stdout.flush()
