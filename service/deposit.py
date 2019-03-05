@@ -220,10 +220,14 @@ def process_notification(acc, note, since):
 
         # adjust some special case(s) for the packaging identification string.
         # Some repositories are really picky about this...
+        # 2019-03-05 TD : it turned out that our DSpace test repo only accepts METSDSpaceSIP
+        #                 as packing string, and sorts out the correct format by itself then 
         if "opus4" in str(packaging).lower():
             packaging = None
         elif "escidoc" in str(packaging).lower():
             packaging = "http://purl.org/escidoc/metadata/schemas/0.1/publication"
+        elif "metsmods" in str(packaging).lower():
+            packaging = "http://purl.org/net/sword/package/METSDSpaceSIP"
 
         # now we can do the deposit from the locally stored file 
         # (which we need because we're going to use seek() on it 
