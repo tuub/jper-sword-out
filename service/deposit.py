@@ -200,7 +200,9 @@ def process_notification(acc, note, since):
     # 2017-05-19 TD : major insert of different repository cases: OPUS4, Pubman(ESciDoc), DSpace, ???, ...
     # 2017-07-13 TD : just added MODS as further repository format option
     #
-    if "opus4" in str(packaging).lower() or "escidoc" in str(packaging).lower() or "dspace" in str(packaging).lower() or "mods" in str(packaging).lower():
+    # 2019-08-14 TD : added the SimpleZip as another format option to the list...
+    #
+    if "opus4" in str(packaging).lower() or "escidoc" in str(packaging).lower() or "dspace" in str(packaging).lower() or "mods" in str(packaging).lower() or "simple" in str(packaging).lower():
         #
         # this should never happen, but just in case, if there's no content to deposit we can 
         # wrap up and return
