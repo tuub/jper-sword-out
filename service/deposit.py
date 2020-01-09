@@ -99,7 +99,8 @@ def process_account(acc):
                 deposit_done = False
                 #                 ... and just below, an if-clause triggering on that.
                 ##process_notification(acc, note, since)
-                deposit_done = process_notification(acc, note, since)
+                ##                The param 'since' is no longer used in 'process_notification'
+                deposit_done = process_notification(acc, note, since=None)
                 # if the notification is successfully processed, record the new last_deposit_date
                 #status.last_deposit_date = note.analysis_date
                 # 2018-03-06 TD : 'note.analysis_date' seems to produce nasty instabilities
@@ -167,11 +168,18 @@ def process_notification(acc, note, since):
     dr = models.DepositRecord.pull_by_ids(note.id, acc.id)
 
     # was this a successful deposit?  if so, don't re-run
-    if dr is not None and dr.was_successful():
-        app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
-        # 2018-03-08 TD : return the new flag with 'False'
-        #return
-        return deposit_done
+    if dr is not None:
+        if dr.was_successful():
+            app.logger.debug(u"Notification:{y} for Account:{x} was previously deposited - skipping".format(x=acc.id, y=note.id))
+            # 2018-03-08 TD : return the new flag with 'False'
+            #return
+            return deposit_done
+        # 2020-01-09 TD : check for a special case 'invalidxml' (induced by a sloppy 
+        #                 OPUS4 sword implementation; fixed in v4.7.x or higher)
+        if dr.metadata_status == "invalidxml":
+            app.logger.debug(u"Notification:{y} for Account:{x} was not previously deposited - SPECIAL CASE ('invalidxml') - skipping".format(x=acc.id, y=note.id))
+            # 2020-01-09 TD : return also 'False' in this special case
+            return deposit_done
 
     # work out if there is a content object to be deposited
     # which means asking the note if there's a content link with a package format supported
@@ -245,7 +253,11 @@ def process_notification(acc, note, since):
                 app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
                 # save the actual deposit record, ensuring the content_status is set the way 
                 # we expect
-                dr.metadata_status = dr.content_status = "failed"
+                # 2020-01-09 TD : treat special case 'invalidxml' separately
+                if dr.metadata_status == "invalidxml":
+                    dr.content_status = "failed"
+                else:
+                    dr.metadata_status = dr.content_status = "failed"
                 if app.config.get("STORE_RESPONSE_DATA", False):
                     dr.save()
 
@@ -271,7 +283,9 @@ def process_notification(acc, note, since):
             app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
             # save the actual deposit record, ensuring that the metadata_status is set 
             # the way we expect
-            dr.metadata_status = "failed"
+            # 2020-01-09 TD : treat special case 'invalidxml' separately
+            if not dr.metadata_status == "invalidxml":
+                dr.metadata_status = "failed"
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
 
@@ -432,7 +446,12 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
     # (recording deposited/failed on the deposit_record along the way)
     if isinstance(ur, sword2.Error_Document):
         deposit_record.content_status = "failed"
-        msg = "Content deposit failed with status {x}".format(x=ur.code)
+        msg = "Content deposit failed with status {x} (error_href={y})".format(x=ur.code,y=ur.error_href)
+        # 2020-01-09 TD : check for special cases for 'InvalidXml' in the error document
+        #ehref = ur.error_href
+        if "opus-repository" in ur.error_href and "InvalidXml" in ur.error_href:
+            deposit_record.metadata_status = "invalidxml"
+        #
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
         app.logger.debug(u"Received error document depositing Package Format:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=packaging))
@@ -492,7 +511,12 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     # (recording deposited/failed on the deposit_record along the way)
     if isinstance(receipt, sword2.Error_Document):
         deposit_record.metadata_status = "failed"
-        msg = "Metadata deposit failed with status {x}".format(x=receipt.code)
+        msg = "Metadata deposit failed with status {x} (error_href={y})".format(x=receipt.code,y=receipt.error_href)
+        # 2020-01-09 TD : check for special cases for 'InvalidXml' in the error document
+        #ehref = ur.error_href
+        if "opus-repository" in ur.error_href and "InvalidXml" in ur.error_href:
+            deposit_record.metadata_status = "invalidxml"
+        #
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
         app.logger.debug(u"Received error document depositing metadata for Notification:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=note.id))

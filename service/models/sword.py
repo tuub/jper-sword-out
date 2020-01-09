@@ -237,7 +237,11 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
                 # 2016-08-26 TD : index mapping exception fix for ES 2.3.3
                 "notification" : {"coerce" : "unicode"},
                 "deposit_date" : {"coerce" : "utcdatetime"},
-                "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed"]},
+                # 2020-01-09 TD : including an additional allowed_value : "invalidxml"
+                #                 (this is mainly induced by a broken OPUS4 sword implementation;
+                #                 fixed from v4.7.x onwards)
+                # "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed"]},
+                "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"invalidxml"]},
                 "content_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
                 "completed_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
             }
@@ -350,15 +354,18 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         """
         return self._get_single("metadata_status", coerce=dataobj.to_unicode())
 
+    # 2020-01-09 TD : additional value "invalidxml" allowed
     @metadata_status.setter
     def metadata_status(self, val):
         """
         Set the status of the metadat adeposit.  Must be one of "deposited" or "failed"
+        or "invalidxml" (!)
 
         :param val: metadata deposit status
         :return:
         """
-        self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed"])
+        #self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed"])
+        self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed", u"invalidxml"])
 
     @property
     def content_status(self):
