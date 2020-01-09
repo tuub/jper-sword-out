@@ -250,7 +250,7 @@ def process_notification(acc, note, since):
                 # 2018-03-08 TD : And we had a lift off...
                 deposit_done = True
             except DepositException as e:
-                app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+                ## app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
                 # save the actual deposit record, ensuring the content_status is set the way 
                 # we expect
                 # 2020-01-09 TD : treat special case 'invalidxml' separately
@@ -264,6 +264,12 @@ def process_notification(acc, note, since):
                 # delete the locally stored content
                 tmp.delete(local_id)
 
+                # 2020-01-09 TD : do not kick the exception upstairs but simply return Flag!
+                if dr.metadata_status == "invalidxml":
+                    app.logger.info("Leaving processing notifs (with 'invalidxml')")
+                    return deposit_done
+
+                app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
                 # kick the exception upstairs for continued handling
                 raise e
 
@@ -280,7 +286,7 @@ def process_notification(acc, note, since):
             # 2018-03-08 TD : depositing metadata counts as well!
             deposit_done = True
         except DepositException as e:
-            app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
+            ## app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
             # save the actual deposit record, ensuring that the metadata_status is set 
             # the way we expect
             # 2020-01-09 TD : treat special case 'invalidxml' separately
@@ -289,6 +295,12 @@ def process_notification(acc, note, since):
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
 
+            # 2020-01-09 TD : do not kick the exception upstairs but simply return Flag!
+            if dr.metadata_status == "invalidxml": 
+                app.logger.info("Leaving processing notifs (with 'invalidxml')")
+                return deposit_done
+
+            app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
             # kick the exception upstairs for continued handling
             raise e
 
