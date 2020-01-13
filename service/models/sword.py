@@ -240,8 +240,9 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
                 # 2020-01-09 TD : including an additional allowed_value : "invalidxml"
                 #                 (this is mainly induced by a broken OPUS4 sword implementation;
                 #                 fixed from v4.7.x onwards)
+                # 2020-01-13 TD : ... and yet the allowed_value : "payloadtoolarge"
                 # "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed"]},
-                "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"invalidxml"]},
+                "metadata_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"invalidxml", u"payloadtoolarge"]},
                 "content_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
                 "completed_status" : {"coerce" : "unicode", "allowed_values" : [u"deposited", u"failed", u"none"]},
             }
@@ -355,17 +356,18 @@ class DepositRecord(dataobj.DataObj, dao.DepositRecordDAO):
         return self._get_single("metadata_status", coerce=dataobj.to_unicode())
 
     # 2020-01-09 TD : additional value "invalidxml" allowed
+    # 2020-01-13 TD : and yet the value "payloadtoolarge" allowed
     @metadata_status.setter
     def metadata_status(self, val):
         """
         Set the status of the metadat adeposit.  Must be one of "deposited" or "failed"
-        or "invalidxml" (!)
+        or "invalidxml" (!) or "payloadtoolarge" (!!)
 
         :param val: metadata deposit status
         :return:
         """
         #self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed"])
-        self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed", u"invalidxml"])
+        self._set_single("metadata_status", val, coerce=dataobj.to_unicode(), allowed_values=[u"deposited", u"failed", u"invalidxml", u"payloadtoolarge"])
 
     @property
     def content_status(self):

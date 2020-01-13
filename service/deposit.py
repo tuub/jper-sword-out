@@ -176,8 +176,9 @@ def process_notification(acc, note, since):
             return deposit_done
         # 2020-01-09 TD : check for a special case 'invalidxml' (induced by a sloppy 
         #                 OPUS4 sword implementation; fixed in v4.7.x or higher)
-        if dr.metadata_status == "invalidxml":
-            app.logger.debug(u"Notification:{y} for Account:{x} was not previously deposited - SPECIAL CASE ('invalidxml') - skipping".format(x=acc.id, y=note.id))
+        # 2020-01-13 TD : ... and special case 'payloadtoolarge'
+        if dr.metadata_status == "invalidxml" or dr.metadata_status == "payloadtoolarge":
+            app.logger.debug(u"Notification:{y} for Account:{x} was not previously deposited - SPECIAL CASE ('{z}') - skipping".format(x=acc.id, y=note.id, z=dr.metadata_status))
             # 2020-01-09 TD : return also 'False' in this special case
             return deposit_done
 
@@ -254,7 +255,8 @@ def process_notification(acc, note, since):
                 # save the actual deposit record, ensuring the content_status is set the way 
                 # we expect
                 # 2020-01-09 TD : treat special case 'invalidxml' separately
-                if dr.metadata_status == "invalidxml":
+                # 2020-01-13 TD : ... and special case 'payloadtoolarge'
+                if dr.metadata_status == "invalidxml" or dr.metadata_status == "payloadtoolarge":
                     dr.content_status = "failed"
                 else:
                     dr.metadata_status = dr.content_status = "failed"
@@ -265,8 +267,8 @@ def process_notification(acc, note, since):
                 tmp.delete(local_id)
 
                 # 2020-01-09 TD : do not kick the exception upstairs but simply return Flag!
-                if dr.metadata_status == "invalidxml":
-                    app.logger.info("Leaving processing notifs (with 'invalidxml')")
+                if dr.metadata_status == "invalidxml" or dr.metadata_status == "payloadtoolarge":
+                    app.logger.info("Leaving processing notifs (with '{z}')".format(z=dr.metadata_status))
                     return deposit_done
 
                 app.logger.error(u"Received package deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
@@ -290,14 +292,15 @@ def process_notification(acc, note, since):
             # save the actual deposit record, ensuring that the metadata_status is set 
             # the way we expect
             # 2020-01-09 TD : treat special case 'invalidxml' separately
-            if not dr.metadata_status == "invalidxml":
+            # 2020-01-13 TD : ... and special case 'payloadtoolarge'
+            if not dr.metadata_status == "invalidxml" and not dr.metadata_status == "payloadtoolarge":
                 dr.metadata_status = "failed"
             if app.config.get("STORE_RESPONSE_DATA", False):
                 dr.save()
 
             # 2020-01-09 TD : do not kick the exception upstairs but simply return Flag!
-            if dr.metadata_status == "invalidxml": 
-                app.logger.info("Leaving processing notifs (with 'invalidxml')")
+            if dr.metadata_status == "invalidxml" or dr.metadata_status == "payloadtoolarge": 
+                app.logger.info("Leaving processing notifs (with '{z}')".format(z=dr.metadata_status))
                 return deposit_done
 
             app.logger.error(u"Received metadata deposit exception for Notification:{y} on Account:{x} - recording a failed deposit and ceasing processing on this notification".format(x=acc.id, y=note.id))
@@ -463,6 +466,10 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
         #ehref = ur.error_href
         if "opus-repository" in ur.error_href and "InvalidXml" in ur.error_href:
             deposit_record.metadata_status = "invalidxml"
+        # 2020-01-13 TD : check for special cases for 'PayloadToLarge' in the error document
+        #                 (note the typo here in OPUS4 ...)
+        if "opus-repository" in ur.error_href and "PayloadToLarge" in ur.error_href:
+            deposit_record.metadata_status = "payloadtoolarge"
         #
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
@@ -528,6 +535,10 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
         #ehref = ur.error_href
         if "opus-repository" in ur.error_href and "InvalidXml" in ur.error_href:
             deposit_record.metadata_status = "invalidxml"
+        # 2020-01-13 TD : check for special cases for 'PayloadToLarge' in the error document
+        #                 (note the typo here in OPUS4 ...)
+        if "opus-repository" in ur.error_href and "PayloadToLarge" in ur.error_href:
+            deposit_record.metadata_status = "payloadtoolarge"
         #
         if app.config.get("STORE_RESPONSE_DATA", False):
             sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
