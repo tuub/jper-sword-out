@@ -535,15 +535,15 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
         deposit_record.metadata_status = "failed"
         msg = "Metadata deposit failed with status {x} (error_href={y})".format(x=receipt.code,y=receipt.error_href)
         # 2020-01-09 TD : check for special cases for 'InvalidXml' in the error document
-        #ehref = ur.error_href
-        # 2020-01-13 TD : safety check, e.g. if ur.code == 500 (INTERNAL SERVER ERROR),
-        #                                    then ur.error_href is None
-        if not ur.error_href is None:
-            if "opus-repository" in ur.error_href and "InvalidXml" in ur.error_href:
+        #ehref = receipt.error_href
+        # 2020-01-13 TD : safety check, e.g. if receipt.code == 500 (INTERNAL SERVER ERROR),
+        #                                    then receipt.error_href is None
+        if not receipt.error_href is None:
+            if "opus-repository" in receipt.error_href and "InvalidXml" in receipt.error_href:
                 deposit_record.metadata_status = "invalidxml"
             # 2020-01-13 TD : check for special cases for 'PayloadToLarge' in the error document
             #                 (note the typo here in OPUS4 ...)
-            if "opus-repository" in ur.error_href and "PayloadToLarge" in ur.error_href:
+            if "opus-repository" in receipt.error_href and "PayloadToLarge" in receipt.error_href:
                 deposit_record.metadata_status = "payloadtoolarge"
         #
         if app.config.get("STORE_RESPONSE_DATA", False):
