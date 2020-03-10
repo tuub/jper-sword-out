@@ -2,7 +2,7 @@
 Model objects used to represent data from the JPER account system
 """
 
-from flask.ext.login import UserMixin
+from flask_login import UserMixin
 from werkzeug import generate_password_hash, check_password_hash
 
 from octopus.core import app
