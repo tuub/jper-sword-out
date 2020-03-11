@@ -8,6 +8,7 @@ setup(
         "octopus==1.0.0",
         "esprit",
         "Flask==1.1.1",
+        "future",
         "sword2"
     ],
     url = 'http://cottagelabs.com/',
