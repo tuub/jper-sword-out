@@ -63,6 +63,18 @@ class NotificationFactory(object):
         return deepcopy(BASE_NOTIFICATION)
 
     @classmethod
+    def routed_notification(cls):
+        """
+        A routed notification
+
+        :return: notification
+        """
+        base = deepcopy(BASE_NOTIFICATION)
+        base["links"].append(deepcopy(ROUTED_LINK))
+        base.update(deepcopy(ROUTING_INFO))
+        return base
+
+    @classmethod
     def outgoing_notification(cls):
         """
         Example outgoing notification
@@ -304,6 +316,24 @@ OUTGOING = {
 }
 """example outgoing notification"""
 
+ROUTED_LINK = {
+    "type" : "fulltext",
+    "format" : "application/zip",
+    "access" : "router",
+    "url" : "http://datahub.deepgreen.org/api/v1/notification/1234567890/content",
+    "packaging" : "https://datahub.deepgreen.org/FilesAndJATS"
+}
+
+"""A link object that can be grafted in to notifications"""
+
+ROUTING_INFO = {
+    "analysis_date" : "2015-02-02T00:00:00Z",
+    "repositories" : [
+        "repo1", "repo2", "repo3"
+    ]
+}
+"""The routing info that can be grafted into a notification to make it routed"""
+
 SPECIAL_CHARACTER = {
         "embargo": {
                 "duration": 0
@@ -319,7 +349,7 @@ SPECIAL_CHARACTER = {
         "id": "4e8f4bef41254539a28e072c1e85d9a2",
         "metadata": {
                 "language": "eng",
-                "title": "Relationship between maxillary central incisor proportions and\\u00a0facial proportions.".decode("unicode_escape"),
+                "title": "Relationship between maxillary central incisor proportions and\\u00a0facial proportions.".encode().decode("unicode_escape"),
                 "author": [{
                         "affiliation": "Senior Specialty Registrar, Orthodontics, Guy's Hospital, London, UK.",
                         "identifier": [{

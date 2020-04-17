@@ -44,7 +44,10 @@ ELASTIC_SEARCH_MAPPINGS = [
 # this will initialise each type and auto-create the relevant mappings where
 # example data is provided
 ELASTIC_SEARCH_EXAMPLE_DOCS = [
-    # "service.dao.MyDAO"
+    "service.dao.UnroutedNotificationDAO",
+    "service.dao.RoutedNotificationDAO",
+    "service.dao.RepositoryConfigDAO",
+    "service.dao.MatchProvenanceDAO"
 ]
 """types which have their mappings initialised by example when initialising - currently there are none"""
 
