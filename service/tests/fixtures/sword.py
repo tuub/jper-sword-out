@@ -71,7 +71,7 @@ DEPOSIT_RECORD_DO = {
     "id" : "12345",
     "created_date" : "1970-01-01T00:00:00Z",
     "last_updated" : "1971-01-01T00:00:00Z",
-    "repository" : "12345",
+    "repo" : "12345",
     "deposit_date" : "1972-01-01T00:00:00Z",
     "metadata_status" : "deposited",
     "content_status" : "none",
@@ -84,7 +84,7 @@ DEPOSIT_RECORD = {
     "last_updated" : "1970-01-01T00:00:00Z",
     "created_date" : "1971-01-01T00:00:00Z",
 
-    "repository" : "12345",
+    "repo" : "12345",
     "notification" : "abcde",
     "deposit_date" : "1972-01-01T00:00:00Z",
     "metadata_status" : "deposited",
