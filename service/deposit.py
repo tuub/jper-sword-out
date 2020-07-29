@@ -7,7 +7,7 @@ from service import xwalk, models
 from octopus.modules.store import store
 from octopus.modules.jper import client
 from octopus.modules.jper import models as jmod
-from io import StringIO
+from io import StringIO, BytesIO
 from octopus.modules.swordv2 import client_http
 from octopus.core import app
 from octopus.lib import dates, http
@@ -401,7 +401,7 @@ def _cache_content(link, note, acc):
 
     local_id = uuid.uuid4().hex
     tmp = store.StoreFactory.tmp()
-    tmp.store(local_id, "README.txt", source_stream=StringIO(note.id))
+    tmp.store(local_id, "README.txt", source_stream=BytesIO(note.id.encode("utf-8")))
     fn = link.get("url").split("/")[-1]
     out = tmp.path(local_id, fn, must_exist=False)
 
