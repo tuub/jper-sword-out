@@ -48,7 +48,7 @@ def mock_complete_deposit_success(*args, **kwargs):
 
 
 def mock_get_content(url, *args, **kwargs):
-    with open(fixtures.NotificationFactory.example_package_path()) as f:
+    with open(fixtures.NotificationFactory.example_package_path(), 'rb') as f:
         cont = f.read()
     return http.MockResponse(200, cont), "", 0
 
@@ -276,7 +276,7 @@ class TestDeposit(ESTestCase):
         tmp = store.StoreFactory.tmp()
         assert tmp.exists(local_id)
         files = tmp.list(local_id)
-        assert files >= 1
+        assert len(files) >= 1
         assert "SimpleZip" in files
 
         # check the content in the store

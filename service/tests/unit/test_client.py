@@ -16,33 +16,33 @@ def mock_list(url, *args, **kwargs):
 
     if params["since"][0] == "1970-01-01T00:00:00Z":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], pageSize=2, count=2)
-        return http.MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
     elif params["since"][0] == "1971-01-01T00:00:00Z":
         before = (int(params["page"][0]) - 1) * int(params["pageSize"][0])
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=int(params["pageSize"][0]), count=before + 3)
-        return http.MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
     elif params["since"][0] == "1972-01-01T00:00:00Z":
         return None
     elif params["since"][0] == "1973-01-01T00:00:00Z":
         return http.MockResponse(401)
     elif params["since"][0] == "1974-01-01T00:00:00Z":
         err = fixtures.NotificationFactory.error_response()
-        return http.MockResponse(400, json.dumps(err))
+        return http.MockResponse(400, json.dumps(err).encode("utf-8"))
 
 def mock_get_content(url, *args, **kwargs):
     parsed = urllib.parse.urlparse(url)
 
     if parsed.path.endswith("/content"):
-        return http.MockResponse(200, "default content"), "", 0
+        return http.MockResponse(200, "default content".encode("utf-8")), "", 0
     elif parsed.path.endswith("/content/SimpleZip"):
-        return http.MockResponse(200, "simplezip"), "", 0
+        return http.MockResponse(200, "simplezip".encode("utf-8")), "", 0
     elif parsed.path.endswith("nohttp"):
         return None, "", 0
     elif parsed.path.endswith("auth"):
         return http.MockResponse(401), "", 0
     elif parsed.path.endswith("error"):
         err = fixtures.NotificationFactory.error_response()
-        return http.MockResponse(400, json.dumps(err)), "", 0
+        return http.MockResponse(400, json.dumps(err).encode("utf-8")), "", 0
 
 def mock_iterate(url, *args, **kwargs):
     parsed = urllib.parse.urlparse(url)
@@ -50,10 +50,10 @@ def mock_iterate(url, *args, **kwargs):
 
     if params["page"][0] == "1":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["1111", "2222"])
-        return http.MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
     elif params["page"][0] == "2":
         nl = fixtures.NotificationFactory.notification_list(params["since"][0], page=int(params["page"][0]), pageSize=2, count=4, ids=["3333", "4444"])
-        return http.MockResponse(200, json.dumps(nl))
+        return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
     raise Exception()
 
 API_KEY = "testing"

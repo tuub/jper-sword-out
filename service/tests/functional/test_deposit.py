@@ -76,7 +76,7 @@ PACKAGING = "http://purl.org/net/sword/package/SimpleZip"
 
 
 def mock_get_content(url, *args, **kwargs):
-    with open(fixtures.NotificationFactory.example_package_path()) as f:
+    with open(fixtures.NotificationFactory.example_package_path(), 'rb') as f:
         cont = f.read()
     return http.MockResponse(200, cont), "", 0
 
@@ -391,7 +391,7 @@ class TestDeposit(ESTestCase):
                         acc1ld
                     ]
                     nl = fixtures.NotificationFactory.notification_list(s, page=p, pageSize=ps, count=c, ids=ids, analysis_dates=ad)
-                    return http.MockResponse(200, json.dumps(nl))
+                    return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
                 elif accid == acc2.id:
                     c = 5
                     ids = ["4444", "5555", "6666", "7777", "8888"]
@@ -403,7 +403,7 @@ class TestDeposit(ESTestCase):
                         acc2ld
                     ]
                     nl = fixtures.NotificationFactory.notification_list(s, page=p, pageSize=ps, count=c, ids=ids, analysis_dates=ad)
-                    return http.MockResponse(200, json.dumps(nl))
+                    return http.MockResponse(200, json.dumps(nl).encode("utf-8"))
                 else:
                     # this means we've requested something for a non-sword enabled account
                     raise Exception()
