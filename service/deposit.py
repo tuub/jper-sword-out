@@ -7,7 +7,7 @@ from service import xwalk, models
 from octopus.modules.store import store
 from octopus.modules.jper import client
 from octopus.modules.jper import models as jmod
-from io import StringIO, BytesIO
+from io import BytesIO
 from octopus.modules.swordv2 import client_http
 from octopus.core import app
 from octopus.lib import dates, http
@@ -477,13 +477,13 @@ def deepgreen_deposit(packaging, file_handle, acc, deposit_record):
                 deposit_record.metadata_status = "payloadtoolarge"
         #
         if app.config.get("STORE_RESPONSE_DATA", False):
-            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         app.logger.debug("Received error document depositing Package Format:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=packaging))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Content deposit was successful"
-            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         deposit_record.content_status = "deposited"
         app.logger.debug("Successfully deposited Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
 
@@ -529,7 +529,7 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
     # if the receipt has a dom object, store it (it may be a deposit receipt or an error)
     if receipt.dom is not None and app.config.get("STORE_RESPONSE_DATA", False):
         content = receipt.to_xml()
-        sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
+        sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=BytesIO(content))
 
     # find out if this was an error document, and throw an error if so
     # (recording deposited/failed on the deposit_record along the way)
@@ -549,13 +549,13 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
                 deposit_record.metadata_status = "payloadtoolarge"
         #
         if app.config.get("STORE_RESPONSE_DATA", False):
-            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         app.logger.debug("Received error document depositing metadata for Notification:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=note.id))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Metadata deposit was successful"
-            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "metadata_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         deposit_record.metadata_status = "deposited"
         app.logger.debug("Metadata successfully deposited for Notification:{y} for Account:{x}".format(x=acc.id, y=note.id))
 
@@ -570,11 +570,11 @@ def metadata_deposit(note, acc, deposit_record, complete=False):
             raise DepositException(msg)
         if app.config.get("STORE_RESPONSE_DATA", False):
             content = receipt.to_xml()
-            sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=StringIO(content))
+            sm.store(deposit_record.id, "metadata_deposit_response.xml", source_stream=BytesIO(content))
 
     # if this is an eprints repository, also send the XML as a file
     if acc.repository_software in ["eprints"]:
-        xmlhandle = StringIO(str(entry))
+        xmlhandle = BytesIO(entry)
         try:
             conn.add_file_to_resource(receipt.edit_media, xmlhandle, "sword.xml", "text/xml")
         except Exception as e:
@@ -632,13 +632,13 @@ def package_deposit(receipt, file_handle, packaging, acc, deposit_record):
         deposit_record.content_status = "failed"
         msg = "Content deposit failed with status {x}".format(x=ur.code)
         if app.config.get("STORE_RESPONSE_DATA", False):
-            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         app.logger.debug("Received error document depositing Package Format:{y} for Account:{x} - raising DepositException".format(x=acc.id, y=packaging))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Content deposit was successful"
-            sm.store(deposit_record.id, "content_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "content_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         deposit_record.content_status = "deposited"
         app.logger.debug("Successfully deposited Package Format:{y} for Account:{x}".format(x=acc.id, y=packaging))
 
@@ -679,18 +679,18 @@ def complete_deposit(receipt, acc, deposit_record):
         deposit_record.completed_status = "none"
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Complete request ignored, as repository is '{x}' which does not support this operation".format(x=acc.repository_software)
-            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
     elif isinstance(cr, sword2.Error_Document):
         deposit_record.completed_status = "failed"
         msg = "Complete request failed with status {x}".format(x=cr.code)
         if app.config.get("STORE_RESPONSE_DATA", False):
-            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         app.logger.debug("Received error document for complete request for Account:{x}".format(x=acc.id))
         raise DepositException(msg)
     else:
         if app.config.get("STORE_RESPONSE_DATA", False):
             msg = "Complete request was successful"
-            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=StringIO(msg))
+            sm.store(deposit_record.id, "complete_deposit.txt", source_stream=BytesIO(msg.encode("utf-8")))
         deposit_record.completed_status = "deposited"
         app.logger.debug("Successfully sent complete request for Account:{x}".format(x=acc.id))
 
